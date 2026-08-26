@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ tokens
+   Light: cool paper-grey with a faint olive cast, near-black ink.
+   Dark: the same ledger at night. One accent (oxide red), brass for figures.
+   The auction-light colors are semantic only — condition chips, nothing else. */
+
+:root {
+  --paper: #eaebe6;
+  --paper-raised: #f1f2ee;
+  --paper-sunken: #e2e4dd;
+  --ink: #14171a;
+  --ink-muted: #575e58;
+  --ink-faint: #7d847d;
+  --rule: #c7cac0;
+  --rule-strong: #9ba095;
+  --accent: #a8352a;
+  --accent-ink: #ffffff;
+  --brass: #8a6a22;
+  --light-green: #2e7d3b;
+  --light-amber: #93660a;
+  --light-red: #a8352a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #101312;
+    --paper-raised: #171b19;
+    --paper-sunken: #0b0d0c;
+    --ink: #e6e8e3;
+    --ink-muted: #9ba39b;
+    --ink-faint: #6f776f;
+    --rule: #2b302c;
+    --rule-strong: #454c45;
+    --accent: #e0654f;
+    --accent-ink: #14171a;
+    --brass: #c6a04a;
+    --light-green: #63bd72;
+    --light-amber: #d5a63e;
+    --light-red: #e0654f;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunken: var(--paper-sunken);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-brass: var(--brass);
+  --color-light-green: var(--light-green);
+  --color-light-amber: var(--light-amber);
+  --color-light-red: var(--light-red);
+
+  --font-display: var(--font-archivo), "Archivo", "Helvetica Neue", Arial,
+    sans-serif;
+  --font-serif: var(--font-source-serif), "Source Serif 4", Georgia,
+    "Times New Roman", serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", "SFMono-Regular", Menlo,
+    Consolas, monospace;
+}
+
+/* ------------------------------------------------------------------ base */
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+/* Digits line up like a ledger, everywhere. */
+.tnum,
+input,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ range
+   The two budget sliders. A hairline track, a square oxide thumb — a caliper,
+   not a toy. */
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 22px;
+  margin-top: -10px;
+  border-radius: 2px;
+  background: var(--accent);
+  border: none;
+}
+
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--accent);
+  border: none;
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
