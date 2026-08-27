@@ -1,19 +1,34 @@
 "use client";
 
 import { useId, useState } from "react";
-import { amortize, formatBps, formatMoney, solveBidCeiling } from "@/lib/finance";
-import { DEFAULT_DEAL_COSTS, DEFAULT_TERMS } from "@/lib/types";
+import { formatMoney, installmentPlan, solveBidCeiling } from "@/lib/finance";
+import { dealCostsFor, SUPPORTED_STATES } from "@/lib/deal-costs";
+import { ZERO_APR_BPS } from "@/lib/types";
 import { RegZDisclosure } from "@/components/RegZDisclosure";
 
 /**
- * The budget envelope, solved backwards, live. Two inputs the member actually
- * controls — cash down and the monthly ceiling — and the two numbers that fall
- * out: the max vehicle price and, the one the auction search runs on, the
- * maximum auction bid.
+ * The budget envelope, solved backwards, live.
+ *
+ * Two inputs the member actually controls — cash down and the monthly ceiling —
+ * and the two numbers that fall out: the max vehicle price and, the one the
+ * auction search runs on, the maximum auction bid.
+ *
+ * Interest-free. With no finance charge the inverse amortization collapses to
+ * monthly × term, which is why a given budget reaches a materially higher bid
+ * ceiling here than the same budget did at a rate: none of the payment is
+ * being spent on interest, so all of it buys car.
+ *
+ * The state selector is not decoration. Tax, doc fee and title differ enough
+ * between states to move the ceiling by hundreds of dollars, and the operating
+ * state is still an open decision — better to show that than to hardcode one
+ * state and quietly quote every visitor the wrong number.
  */
+const TERM_MONTHS = 36;
+
 export function BudgetCalculator() {
   const [downDollars, setDownDollars] = useState(2500);
   const [monthlyDollars, setMonthlyDollars] = useState(400);
+  const [state, setState] = useState("FL");
   const downId = useId();
   const monthlyId = useId();
 
@@ -21,19 +36,43 @@ export function BudgetCalculator() {
     downCents: downDollars * 100,
     monthlyCents: monthlyDollars * 100,
   };
-  const ceiling = solveBidCeiling(envelope, DEFAULT_TERMS, DEFAULT_DEAL_COSTS);
-  const loan = amortize(
-    ceiling.maxAmountFinancedCents,
-    DEFAULT_TERMS.aprBps,
-    DEFAULT_TERMS.termMonths,
+  const costs = dealCostsFor(state);
+  const terms = { aprBps: ZERO_APR_BPS, termMonths: TERM_MONTHS };
+  const ceiling = solveBidCeiling(envelope, terms, costs);
+
+  // The plan the member would actually be on: out-the-door is the amount
+  // financed plus their down payment, by definition of the ceiling.
+  const plan = installmentPlan(
+    ceiling.maxAmountFinancedCents + envelope.downCents,
+    envelope.downCents,
+    TERM_MONTHS
   );
 
   return (
     <div className="border border-rule-strong bg-paper-raised">
-      <p className="border-b border-rule bg-paper-sunken px-4 py-2 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted sm:px-6">
-        Worksheet · {formatBps(DEFAULT_TERMS.aprBps)} APR ·{" "}
-        {DEFAULT_TERMS.termMonths} months · Texas tax, title &amp; fees included
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule bg-paper-sunken px-4 py-2 sm:px-6">
+        <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
+          Worksheet · <span className="text-accent">0% APR — no interest</span> ·{" "}
+          {TERM_MONTHS} months · tax, title &amp; fees included
+        </p>
+        <div className="flex items-center gap-1">
+          {SUPPORTED_STATES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={s === state}
+              onClick={() => setState(s)}
+              className={`border px-2 py-0.5 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] ${
+                s === state
+                  ? "border-accent bg-accent text-accent-ink"
+                  : "border-rule-strong bg-paper text-ink-muted hover:text-ink"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="grid gap-0 sm:grid-cols-2">
         {/* Inputs */}
@@ -105,6 +144,7 @@ export function BudgetCalculator() {
           <p className="font-serif text-[0.875rem] italic leading-relaxed text-ink-muted">
             A ceiling, not a wish. We solve backwards from what you can keep
             paying — tax, title, doc fee, transport, and recon already counted.
+            None of it goes to interest.
           </p>
         </div>
 
@@ -133,9 +173,11 @@ export function BudgetCalculator() {
         </div>
       </div>
 
-      {/* Down payment + monthly figures above are Reg Z trigger terms. */}
+      {/* Down payment + monthly figures above are Reg Z trigger terms. Zero
+          interest does not change that — an interest-free plan over more than
+          four payments is still a credit sale. */}
       <div className="px-4 pb-4 sm:px-6">
-        <RegZDisclosure downCents={envelope.downCents} loan={loan} />
+        <RegZDisclosure plan={plan} />
       </div>
     </div>
   );

@@ -87,7 +87,13 @@ describe("solveBidCeiling", () => {
 describe("amortize / toTila", () => {
   it("computes the full loan figure set for the $387 deal", () => {
     const loan = amortize(1_013_500, 2200, 36);
-    expect(loan.totalOfPaymentsCents).toBe(loan.monthlyPaymentCents * 36);
+    // Total of payments is the sum of the SCHEDULED payments, which differs
+    // from payment × term by the cents the final payment absorbs.
+    const scheduled = buildSchedule(loan, new Date("2026-10-01T00:00:00Z"));
+    const sum = scheduled.reduce((s, r) => s + r.paymentCents, 0);
+    expect(loan.totalOfPaymentsCents).toBe(sum);
+    expect(Math.abs(loan.totalOfPaymentsCents - loan.monthlyPaymentCents * 36))
+      .toBeLessThan(100);
     expect(loan.financeChargeCents).toBe(
       loan.totalOfPaymentsCents - loan.amountFinancedCents
     );
@@ -123,6 +129,18 @@ describe("buildSchedule", () => {
       "2026-12-15",
       "2027-01-15",
     ]);
+  });
+
+  it("discloses a true $0.00 finance charge at 0% APR", () => {
+    // The main product is interest-free, so this is the disclosure that has to
+    // be exactly right: not -$0.06, not +$0.08. Zero.
+    for (const principal of [1_033_170, 1_000_000, 883_170, 7_777_777]) {
+      for (const term of [12, 24, 36, 48]) {
+        const loan = amortize(principal, 0, term);
+        expect(loan.financeChargeCents).toBe(0);
+        expect(loan.totalOfPaymentsCents).toBe(principal);
+      }
+    }
   });
 
   it("zero-APR schedule also closes to zero", () => {
