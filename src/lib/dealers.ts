@@ -32,7 +32,12 @@ export interface Dealer {
 export const DEALERS: Dealer[] = [
   {
     id: "dealer_orl_001",
-    legalName: "MGM Autobroker",
+    // The registered entity, still unconfirmed. "MGM Autobroker" is the name
+    // the business trades under and is what a member sees; whether it is also
+    // the legal name on the licence is a question for the licence itself, and
+    // guessing at it here would put an invented entity on a contract.
+    legalName: "Orlando partner dealer — not yet onboarded",
+    dbaName: "MGM Autobroker",
     state: "FL",
     city: "Orlando",
     streetAddress: "5624 S. Orange Blossom Trail",
