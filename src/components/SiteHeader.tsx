@@ -12,16 +12,22 @@ export function SiteHeader() {
         </Link>
         <nav className="flex items-baseline gap-4 sm:gap-6">
           <Link
-            href="/drop"
+            href="/cars"
             className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink-muted underline-offset-4 hover:text-ink hover:underline"
           >
-            Monday drop
+            Cars
           </Link>
           <Link
-            href="/#waitlist"
+            href="/#budget"
+            className="hidden font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink-muted underline-offset-4 hover:text-ink hover:underline sm:inline"
+          >
+            What can I afford
+          </Link>
+          <Link
+            href="/account"
             className="border border-rule-strong bg-paper-raised px-3 py-1.5 font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent"
           >
-            Join waitlist
+            Account
           </Link>
         </nav>
       </div>

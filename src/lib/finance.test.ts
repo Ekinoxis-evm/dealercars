@@ -6,24 +6,16 @@ import {
   formatMoney,
   maxAmountFinanced,
   monthlyPayment,
-  priceLot,
   ptiRatio,
-  passesUnderwriting,
-  solveBidCeiling,
+  solveAffordability,
   toTila,
 } from "./finance";
-import { buildDrop, rankLots, scoreLot } from "./scoring";
-import { MOCK_LOTS } from "./mock-lots";
-import type {
-  AuctionLot,
-  BudgetEnvelope,
-  CreditTerms,
-  DealCosts,
-} from "./types";
-import { DEFAULT_TERMS } from "./types";
+import type { BudgetEnvelope, CreditTerms, DealCosts } from "./types";
 
-// The canonical worked deal from the spec: $2,500 down / $400 monthly at
-// 22% APR, 36 months, 7% tax state.
+// The interest-rate reference case, retained deliberately. The product is 0%,
+// but this is the worked example the amortization is pinned to, and a rate is
+// the only condition under which the schedule math is actually exercised:
+// $2,500 down / $400 monthly at 22% APR, 36 months, 7% tax state.
 const ENVELOPE: BudgetEnvelope = { downCents: 250_000, monthlyCents: 40_000 };
 const TERMS: CreditTerms = { aprBps: 2200, termMonths: 36 };
 const COSTS: DealCosts = {
@@ -35,10 +27,6 @@ const COSTS: DealCosts = {
   buyFeeCents: 30_000,
   targetGrossCents: 279_500,
 };
-
-function lotWith(overrides: Partial<AuctionLot>): AuctionLot {
-  return { ...MOCK_LOTS[0], ...overrides };
-}
 
 describe("monthlyPayment", () => {
   it("reproduces the $387 worked example ($10,135 @ 22%/36)", () => {
@@ -69,25 +57,44 @@ describe("maxAmountFinanced / monthlyPayment inversion", () => {
   });
 });
 
-describe("solveBidCeiling", () => {
+describe("solveAffordability", () => {
   it("matches the spec worked example within $5", () => {
-    const c = solveBidCeiling(ENVELOPE, TERMS, COSTS);
-    expect(Math.abs(c.maxAmountFinancedCents - 1_047_300)).toBeLessThanOrEqual(500);
-    expect(Math.abs(c.maxRetailPriceCents - 1_161_000)).toBeLessThanOrEqual(500);
-    expect(Math.abs(c.maxAuctionBidCents - 726_500)).toBeLessThanOrEqual(500);
+    const a = solveAffordability(ENVELOPE, TERMS, COSTS);
+    expect(Math.abs(a.maxAmountFinancedCents - 1_047_300)).toBeLessThanOrEqual(500);
+    expect(Math.abs(a.maxRetailPriceCents - 1_161_000)).toBeLessThanOrEqual(500);
+    // Out the door is what a car on the lot is compared against: everything
+    // the member finances plus everything they put down.
+    expect(a.maxOutTheDoorCents).toBe(
+      a.maxAmountFinancedCents + ENVELOPE.downCents
+    );
   });
 
-  it("never returns a negative bid ceiling", () => {
-    const tiny: BudgetEnvelope = { downCents: 0, monthlyCents: 5_000 };
-    const c = solveBidCeiling(tiny, TERMS, COSTS);
-    expect(c.maxAuctionBidCents).toBe(0);
+  it("inverts back through the tax and fee stack", () => {
+    const a = solveAffordability(ENVELOPE, TERMS, COSTS);
+    const otd =
+      Math.round(a.maxRetailPriceCents * 1.07) +
+      COSTS.docFeeCents +
+      COSTS.titleRegCents;
+    expect(Math.abs(otd - a.maxOutTheDoorCents)).toBeLessThanOrEqual(2);
+  });
+
+  it("never returns a negative price", () => {
+    const tiny: BudgetEnvelope = { downCents: 0, monthlyCents: 1_00 };
+    const a = solveAffordability(tiny, TERMS, COSTS);
+    expect(a.maxRetailPriceCents).toBe(0);
   });
 });
 
 describe("amortize / toTila", () => {
   it("computes the full loan figure set for the $387 deal", () => {
     const loan = amortize(1_013_500, 2200, 36);
-    expect(loan.totalOfPaymentsCents).toBe(loan.monthlyPaymentCents * 36);
+    // Total of payments is the sum of the SCHEDULED payments, which differs
+    // from payment × term by the cents the final payment absorbs.
+    const scheduled = buildSchedule(loan, new Date("2026-10-01T00:00:00Z"));
+    const sum = scheduled.reduce((s, r) => s + r.paymentCents, 0);
+    expect(loan.totalOfPaymentsCents).toBe(sum);
+    expect(Math.abs(loan.totalOfPaymentsCents - loan.monthlyPaymentCents * 36))
+      .toBeLessThan(100);
     expect(loan.financeChargeCents).toBe(
       loan.totalOfPaymentsCents - loan.amountFinancedCents
     );
@@ -125,6 +132,18 @@ describe("buildSchedule", () => {
     ]);
   });
 
+  it("discloses a true $0.00 finance charge at 0% APR", () => {
+    // The main product is interest-free, so this is the disclosure that has to
+    // be exactly right: not -$0.06, not +$0.08. Zero.
+    for (const principal of [1_033_170, 1_000_000, 883_170, 7_777_777]) {
+      for (const term of [12, 24, 36, 48]) {
+        const loan = amortize(principal, 0, term);
+        expect(loan.financeChargeCents).toBe(0);
+        expect(loan.totalOfPaymentsCents).toBe(principal);
+      }
+    }
+  });
+
   it("zero-APR schedule also closes to zero", () => {
     const loan = amortize(1_000_000, 0, 36);
     const schedule = buildSchedule(loan, new Date("2026-10-01T00:00:00Z"));
@@ -133,124 +152,10 @@ describe("buildSchedule", () => {
   });
 });
 
-describe("priceLot", () => {
-  it("works forward from MMR to a financed proposal", () => {
-    const lot = lotWith({ mmrCents: 692_500 });
-    const p = priceLot(lot, ENVELOPE, TERMS, COSTS);
-    // retail = mmr + buyFee + transport + recon + targetGross
-    expect(p.retailPriceCents).toBe(
-      692_500 + 30_000 + 35_000 + 90_000 + 279_500
-    );
-    // OTD = retail * 1.07 + doc + title
-    expect(p.outTheDoorCents).toBe(
-      Math.round(p.retailPriceCents * 1.07) + 29_900 + 25_000
-    );
-    expect(p.loan.amountFinancedCents).toBe(p.outTheDoorCents - 250_000);
-    // Headroom against the solved ceiling.
-    const ceiling = solveBidCeiling(ENVELOPE, TERMS, COSTS);
-    expect(p.headroomCents).toBe(ceiling.maxAuctionBidCents - lot.mmrCents);
-  });
-});
-
-describe("underwriting", () => {
-  it("computes PTI and enforces the 20% cap", () => {
+describe("ptiRatio", () => {
+  it("computes payment-to-income and treats no income as unaffordable", () => {
     expect(ptiRatio(40_000, 200_000)).toBeCloseTo(0.2);
-    const lot = lotWith({});
-    const p = priceLot(lot, ENVELOPE, TERMS, COSTS);
-    const poor = passesUnderwriting(p, 100_000); // $1,000/mo income
-    expect(poor.ok).toBe(false);
-    expect(poor.reasons.some((r) => /payment-to-income/i.test(r))).toBe(true);
-  });
-
-  it("flags thin down payments and long terms", () => {
-    const lot = lotWith({});
-    const thin = priceLot(
-      lot,
-      { downCents: 50_000, monthlyCents: 40_000 },
-      { aprBps: 2200, termMonths: 60 },
-      COSTS
-    );
-    const result = passesUnderwriting(thin, 400_000);
-    expect(result.ok).toBe(false);
-    expect(result.reasons.some((r) => /down payment/i.test(r))).toBe(true);
-    expect(result.reasons.some((r) => /term/i.test(r))).toBe(true);
-  });
-});
-
-describe("scoring hard rejects", () => {
-  const ceiling = solveBidCeiling(ENVELOPE, TERMS, COSTS);
-
-  it("rejects branded and salvage titles", () => {
-    const s = scoreLot(lotWith({ titleStatus: "branded" }), ceiling, COSTS);
-    expect(s.rejected).toBe(true);
-    expect(s.score).toBe(0);
-    expect(s.rejectReason).toMatch(/title/i);
-  });
-
-  it("rejects over-mileage lots", () => {
-    const s = scoreLot(lotWith({ mileage: 160_300 }), ceiling, COSTS);
-    expect(s.rejected).toBe(true);
-    expect(s.rejectReason).toMatch(/mileage/i);
-  });
-
-  it("rejects lots priced over the ceiling", () => {
-    const s = scoreLot(
-      lotWith({ mmrCents: ceiling.maxAuctionBidCents + 1 }),
-      ceiling,
-      COSTS
-    );
-    expect(s.rejected).toBe(true);
-    expect(s.rejectReason).toMatch(/bid/i);
-  });
-
-  it("rejects frame damage announcements", () => {
-    const s = scoreLot(
-      lotWith({ announcements: ["Frame damage"] }),
-      ceiling,
-      COSTS
-    );
-    expect(s.rejected).toBe(true);
-    expect(s.rejectReason).toMatch(/frame/i);
-  });
-
-  it("scores a clean, in-budget lot between 0 and 1", () => {
-    const s = scoreLot(MOCK_LOTS[0], ceiling, COSTS);
-    expect(s.rejected).toBe(false);
-    expect(s.score).toBeGreaterThan(0);
-    expect(s.score).toBeLessThanOrEqual(1);
-  });
-});
-
-describe("rankLots / buildDrop", () => {
-  it("drops rejects and sorts descending", () => {
-    const ceiling = solveBidCeiling(ENVELOPE, TERMS, COSTS);
-    const ranked = rankLots(MOCK_LOTS, ceiling, COSTS);
-    expect(ranked.every((s) => !s.rejected)).toBe(true);
-    for (let i = 1; i < ranked.length; i++) {
-      expect(ranked[i - 1].score).toBeGreaterThanOrEqual(ranked[i].score);
-    }
-    // The mock inventory purposely contains rejects, so some must be gone.
-    expect(ranked.length).toBeLessThan(MOCK_LOTS.length);
-  });
-
-  it("returns at most `count` proposals, none from rejected lots", () => {
-    const drop = buildDrop(MOCK_LOTS, ENVELOPE, TERMS, COSTS, 4);
-    expect(drop.length).toBeLessThanOrEqual(4);
-    expect(drop.length).toBeGreaterThan(0);
-    for (const proposal of drop) {
-      expect(proposal.lot.titleStatus).toBe("clean");
-      expect(proposal.lot.mileage).toBeLessThanOrEqual(150_000);
-      expect(proposal.headroomCents).toBeGreaterThanOrEqual(0);
-      expect(proposal.score).toBeGreaterThan(0);
-    }
-  });
-
-  it("uses DEFAULT_TERMS-compatible math end to end", () => {
-    const drop = buildDrop(MOCK_LOTS, ENVELOPE, DEFAULT_TERMS, COSTS);
-    for (const p of drop) {
-      expect(p.loan.termMonths).toBe(DEFAULT_TERMS.termMonths);
-      expect(p.loan.monthlyPaymentCents).toBeGreaterThan(0);
-    }
+    expect(ptiRatio(40_000, 0)).toBe(Infinity);
   });
 });
 
