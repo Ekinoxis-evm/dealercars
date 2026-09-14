@@ -45,6 +45,11 @@ const ProfileFormImpl = dynamic(
   { loading: () => <Skeleton height="h-96" /> }
 );
 
+const AuctionAccessCheckoutImpl = dynamic(
+  () => import("./AuctionAccessCheckout").then((m) => m.AuctionAccessCheckout),
+  { loading: () => <Skeleton height="h-40" /> }
+);
+
 const AdminInventoryImpl = dynamic(
   () => import("./AdminInventory").then((m) => m.AdminInventory),
   { loading: () => <Skeleton height="h-96" /> }
@@ -68,6 +73,13 @@ export function VisitScheduler(props: { listingId: string }) {
 
 export function ProfileForm() {
   return <ProfileFormImpl />;
+}
+
+export function AuctionAccessCheckout(props: {
+  feeCents: number;
+  address?: string;
+}) {
+  return <AuctionAccessCheckoutImpl {...props} />;
 }
 
 export function AdminInventory() {

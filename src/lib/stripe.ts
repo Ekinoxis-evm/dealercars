@@ -221,6 +221,67 @@ export async function createDownPaymentCheckout(params: {
 }
 
 /**
+ * The auction brokerage fee. DIRECT charge on the dealer's account.
+ *
+ * Dealer revenue, not ours: it pays the licence holder for bidding on the
+ * member's behalf. Settling it to the platform would make us the merchant for
+ * a service we do not perform and cannot perform, since we are not the party
+ * holding the auction licence.
+ *
+ * Deliberately `mode: "payment"` and nothing else. No `setup_future_usage`:
+ * this fee is a one-off and saving the card here would quietly enrol a member
+ * into off-session charges for a product that has none. And no Reg Z
+ * disclosure on the page that links here, because a one-off service price
+ * states no down payment, no periodic payment and no finance charge — see
+ * `auction-access.ts` for why that must stay true.
+ */
+export async function createAuctionAccessCheckout(params: {
+  dealerAccountId: string;
+  profileId: string;
+  email?: string;
+  fullName?: string;
+  amountCents: Money;
+  dealerName: string;
+}): Promise<Stripe.Checkout.Session> {
+  const customer = await dealerCustomer(params.dealerAccountId, params);
+
+  return stripe().checkout.sessions.create(
+    {
+      mode: "payment",
+      customer,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: params.amountCents,
+            product_data: {
+              name: `Auction Access — ${params.dealerName}`,
+              description:
+                "Flat service fee. We bid at dealer-only wholesale auctions on your behalf under our licence. Non-refundable: it pays for the work, which is done whether or not a lot is won. The price of the car, auction buyer fees, tax, title and registration are separate.",
+            },
+          },
+        },
+      ],
+      payment_intent_data: {
+        application_fee_amount: NO_APPLICATION_FEE,
+        metadata: {
+          kind: "auction_access",
+          profile_id: params.profileId,
+        },
+      },
+      metadata: {
+        kind: "auction_access",
+        profile_id: params.profileId,
+      },
+      success_url: `${serverEnv.siteUrl}/auction-access?paid=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${serverEnv.siteUrl}/auction-access`,
+    },
+    { stripeAccount: params.dealerAccountId }
+  );
+}
+
+/**
  * Collect one scheduled installment off-session. DIRECT charge, dealer account.
  *
  * Deliberately NOT a Stripe subscription. The schedule of record is the signed

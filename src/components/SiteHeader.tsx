@@ -18,10 +18,10 @@ export function SiteHeader() {
             Cars
           </Link>
           <Link
-            href="/#budget"
+            href="/auction-access"
             className="hidden font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink-muted underline-offset-4 hover:text-ink hover:underline sm:inline"
           >
-            What can I afford
+            Auction access
           </Link>
           <Link
             href="/account"

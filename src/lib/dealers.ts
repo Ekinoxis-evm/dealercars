@@ -19,6 +19,9 @@ export interface Dealer {
   /** State retail installment seller / sales finance licence. */
   licenseNumber?: string;
   licenseVerifiedAt?: string;
+  /** Where the member is told to turn up. On the dealer, not in the UI. */
+  streetAddress?: string;
+  postalCode?: string;
   /** Stripe connected account. Every dollar of car money settles here. */
   stripeAccountId?: string;
   stripeChargesEnabled: boolean;
@@ -29,9 +32,12 @@ export interface Dealer {
 export const DEALERS: Dealer[] = [
   {
     id: "dealer_orl_001",
-    legalName: "DealerCars — Orlando (onboarding incomplete)",
+    legalName: "MGM Autobroker",
     state: "FL",
     city: "Orlando",
+    streetAddress: "5624 S. Orange Blossom Trail",
+    // TODO: confirm the ZIP before this reaches a receipt or a map link.
+    postalCode: undefined,
     // A connected account exists (test mode), but nothing else does: no licence
     // on file, and Stripe has not enabled charges because onboarding is
     // unfinished. This dealer cannot sell, cannot hold paper, and cannot take a
@@ -49,6 +55,16 @@ export const DEALERS: Dealer[] = [
     timeZone: "America/New_York",
   },
 ];
+
+/**
+ * The dealer we actually operate as.
+ *
+ * Products that are not attached to a specific car — Auction Access — have no
+ * listing to read a `dealerId` off, so they need a named one. A constant
+ * rather than a lookup by position, so that onboarding a second dealer is a
+ * visible decision here instead of a silent change of meaning somewhere else.
+ */
+export const OPERATING_DEALER_ID = "dealer_orl_001";
 
 export function findDealer(id: string): Dealer | undefined {
   return DEALERS.find((d) => d.id === id);

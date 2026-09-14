@@ -356,6 +356,16 @@ export function isUnderwritable(p: MemberProfile): boolean {
 
 // ---------------------------------------------------------------- scheduling
 
+/**
+ * What an appointment is for.
+ *
+ * A test drive is about one specific car and cannot exist without it. An
+ * auction-access appointment is the opposite: the whole point is that the car
+ * does not exist yet. The database enforces the pairing in
+ * `visit_kind_matches_listing`.
+ */
+export type VisitKind = "test_drive" | "auction_access";
+
 export type VisitStatus =
   | "requested"
   | "confirmed"
@@ -364,14 +374,19 @@ export type VisitStatus =
   | "canceled";
 
 /**
- * An appointment at the dealer to see and drive a specific car. This is the
- * step the money hangs off: the deposit holds the car until the visit, and the
- * down payment is only non-refundable once the RISC is signed at the visit.
+ * An appointment at the dealer's office.
+ *
+ * On a test drive this is the step the money hangs off: the deposit holds the
+ * car until the visit, and the down payment is only non-refundable once the
+ * RISC is signed there. On an auction-access appointment it is where the
+ * member and the broker agree what to bid on, and what to stop at.
  */
 export interface Visit {
   id: string;
   profileId: string;
-  listingId: string;
+  kind: VisitKind;
+  /** The car, on a test drive. Absent on an auction-access appointment. */
+  listingId?: string;
   dealerId: string;
   /** ISO datetime, UTC. Rendered in the dealer's local zone. */
   scheduledAt: string;
@@ -404,6 +419,14 @@ export interface Visit {
 export type PaymentKind =
   /** HISTORICAL. The retired subscription. Platform account. Never created. */
   | "membership"
+  /**
+   * Flat fee for the auction brokerage service. Dealer account.
+   *
+   * NOT credit, and not a condition of it — see `auction-access.ts`. A charge
+   * imposed as a condition of extending credit would be a finance charge under
+   * 12 CFR 1026.4(a), which this product must never become.
+   */
+  | "auction_access"
   /** Refundable hold that reserves a car until the visit. Dealer account. */
   | "visit_deposit"
   /** Cash down at contract signing. Dealer account. */

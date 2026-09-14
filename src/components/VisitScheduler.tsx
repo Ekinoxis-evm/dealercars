@@ -6,13 +6,27 @@ import { apiFetch, ApiError } from "@/lib/api-client";
 import { formatSlotDate, groupSlotsByDay, type VisitSlot } from "@/lib/visits";
 
 /**
- * Book a time to come and drive the car.
+ * Book a time at the dealer's office.
+ *
+ * Two shapes, one component, because the mechanics are identical and only the
+ * copy differs. With a `listingId` it books a test drive of that car; without
+ * one it books an auction-access appointment, where the whole point is that
+ * there is no car yet. The route and the database both enforce that pairing,
+ * so this only has to say which it is.
  *
  * Slot times are rendered in the DEALER's timezone and labelled as such. A
  * member browsing from another state must not turn up an hour late because we
  * quietly localised the appointment to their own clock.
  */
-export function VisitScheduler({ listingId }: { listingId: string }) {
+export function VisitScheduler({
+  listingId,
+  address,
+}: {
+  listingId?: string;
+  /** Shown on an office appointment, where "come here" needs a here. */
+  address?: string;
+}) {
+  const isAuctionAccess = listingId === undefined;
   const { authenticated, login } = usePrivy();
 
   const [slots, setSlots] = useState<VisitSlot[] | null>(null);
@@ -32,9 +46,12 @@ export function VisitScheduler({ listingId }: { listingId: string }) {
           slots: VisitSlot[];
           timeZone: string;
           unavailableReason?: string;
-        }>(`/api/visits?listingId=${encodeURIComponent(listingId)}`, {
-          authenticated: false,
-        });
+        }>(
+          listingId
+            ? `/api/visits?listingId=${encodeURIComponent(listingId)}`
+            : "/api/visits",
+          { authenticated: false }
+        );
         if (cancelled) return;
         setSlots(data.slots);
         setTimeZone(data.timeZone);
@@ -100,8 +117,16 @@ export function VisitScheduler({ listingId }: { listingId: string }) {
             }).format(new Date(booked))}{" "}
             {zoneLabel}
           </span>
-          . Bring your driver&rsquo;s licence, proof of income, and proof of
-          address. Nothing is committed until you sign at the lot.
+          .{" "}
+          {isAuctionAccess
+            ? "Bring your driver's licence and a rough idea of what you are after. We will agree a shortlist and a ceiling before anything is bid on."
+            : "Bring your driver's licence, proof of income, and proof of address. Nothing is committed until you sign at the lot."}
+          {address && (
+            <>
+              {" "}
+              We are at <span className="text-ink">{address}</span>.
+            </>
+          )}
         </p>
       </section>
     );
@@ -111,11 +136,11 @@ export function VisitScheduler({ listingId }: { listingId: string }) {
     <section className="border border-rule-strong bg-paper-raised">
       <header className="border-b border-rule-strong px-4 py-3 sm:px-6">
         <h2 className="font-display text-lg font-extrabold tracking-tight">
-          Come and drive it
+          {isAuctionAccess ? "Book your appointment" : "Come and drive it"}
         </h2>
-        <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-          Times below are the dealer&rsquo;s local clock ({zoneLabel}). Booking
-          commits you to nothing.
+        <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
+          Times are the office&rsquo;s local clock ({zoneLabel}).
+          {address ? ` ${address}.` : ""}
         </p>
       </header>
 
