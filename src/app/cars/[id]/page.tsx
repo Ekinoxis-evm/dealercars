@@ -85,12 +85,13 @@ export default async function CarPage({
         </p>
 
         {priceable && (
-          <p className="mt-4 font-serif text-lg leading-relaxed">
+          <p className="mt-3 font-serif leading-snug">
             <span className="tnum font-display text-2xl font-extrabold tracking-tight">
               {formatMoney(quote.outTheDoorCents, { cents: true })}
             </span>{" "}
-            out the door &mdash; tax, title, registration and doc fee included.
-            No interest on any payment plan.
+            <span className="text-ink-muted">
+              out the door &mdash; tax, title and fees in.
+            </span>
           </p>
         )}
       </header>
@@ -103,22 +104,21 @@ export default async function CarPage({
 
       {/* ---------------------------------------------------- interlock */}
       {isSourced && (
-        <div className="mt-6 border-l-2 border-accent bg-paper-raised px-4 py-4 sm:px-6">
+        <div className="mt-6 border-l-2 border-accent bg-paper-raised px-4 py-3 sm:px-6">
           <h2 className="font-display text-base font-bold tracking-tight">
-            This car is being sourced, not sold yet.
+            Not for sale yet &mdash; we are still buying it.
           </h2>
-          <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-            It is a private-party listing we have not bought yet. Nobody can
-            take a payment on a car nobody holds title to, so checkout is closed
-            until we acquire it, have it inspected, and put it on the lot. The
-            figures below are what it will cost when that happens.
+          <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
+            Nobody can take payment on a car nobody holds title to, so checkout
+            is closed until it is ours and inspected. These are the figures for
+            when it lands.
           </p>
         </div>
       )}
 
       {blockReason && !isSourced && (
-        <div className="mt-6 border-l-2 border-accent bg-paper-raised px-4 py-4 sm:px-6">
-          <p className="font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
+        <div className="mt-6 border-l-2 border-accent bg-paper-raised px-4 py-3 sm:px-6">
+          <p className="font-serif text-[0.875rem] leading-snug text-ink-muted">
             {blockReason}
           </p>
         </div>
@@ -130,14 +130,14 @@ export default async function CarPage({
           {priceable ? (
             <PlanPicker listing={listing} initialQuote={quote} />
           ) : (
-            <section className="border border-rule-strong bg-paper-raised px-4 py-5 sm:px-6">
-              <h2 className="font-display text-lg font-extrabold tracking-tight">
-                We can&rsquo;t price this car yet.
+            <section className="border border-rule-strong bg-paper-raised px-4 py-4 sm:px-6">
+              <h2 className="font-display text-base font-extrabold tracking-tight">
+                Not priced for {listing.state} yet.
               </h2>
-              <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-                There is no tax, title and fee profile for {listing.state}, so
-                any out-the-door figure would be a guess. We would rather show
-                nothing than show a number that changes at signing.
+              <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
+                No tax and fee profile for that state, so any out-the-door
+                figure would be a guess. Better none than one that changes at
+                signing.
               </p>
             </section>
           )}
@@ -146,73 +146,56 @@ export default async function CarPage({
         </div>
 
         {/* ----------------------------------------------------- right */}
-        <div className="flex flex-col gap-8">
-          <section className="border border-rule-strong bg-paper-raised">
-            <h2 className="border-b border-rule-strong px-4 py-3 font-display text-lg font-extrabold tracking-tight sm:px-6">
-              What we know
-            </h2>
-            <dl className="px-4 py-4 sm:px-6">
-              <Fact label="Mileage" value={`${listing.mileage.toLocaleString("en-US")} miles`} />
-              <Fact label="Title" value={listing.titleStatus === "clean" ? "Clean (to be verified)" : listing.titleStatus} />
-              <Fact label="Owners" value={listing.ownerCount ? String(listing.ownerCount) : "Unknown"} />
-              <Fact label="VIN" value={listing.vin ?? "Not published by the seller"} />
+        <div className="flex flex-col gap-6">
+          <Card title="The car">
+            <dl className="tnum grid grid-cols-2 gap-x-4 px-4 py-3 font-mono text-[0.75rem] sm:px-6">
+              <Fact label="Mileage" value={`${listing.mileage.toLocaleString("en-US")} mi`} />
+              <Fact label="Durability" value={`${Math.round(listing.durability * 100)}/100`} />
               <Fact
-                label="Durability score"
-                value={`${Math.round(listing.durability * 100)} / 100`}
+                label="Title"
+                value={listing.titleStatus === "clean" ? "Clean · to verify" : listing.titleStatus}
               />
+              <Fact label="Owners" value={listing.ownerCount ? String(listing.ownerCount) : "Unknown"} />
+              <Fact label="Transmission" value={listing.transmission} />
+              <Fact label="VIN" value={listing.vin ?? "Not published"} />
             </dl>
-            <p className="border-t border-rule px-4 py-3 font-serif text-[0.8125rem] leading-relaxed text-ink-muted sm:px-6">
-              Durability is underwriting, not trivia. A car that breaks in month
-              four is a car that stops being paid for, so it is scored before
-              price is.
-            </p>
-          </section>
+          </Card>
 
           {listing.description && (
-            <section className="border border-rule-strong bg-paper-raised">
-              <h2 className="border-b border-rule-strong px-4 py-3 font-display text-lg font-extrabold tracking-tight sm:px-6">
-                About this car
-              </h2>
-              <p className="whitespace-pre-line px-4 py-4 font-serif text-[0.9375rem] leading-relaxed text-ink-muted sm:px-6">
+            <Card title="About">
+              <p className="whitespace-pre-line px-4 py-3 font-serif text-[0.875rem] leading-snug text-ink-muted sm:px-6">
                 {listing.description}
               </p>
-            </section>
+            </Card>
           )}
 
-          <section className="border border-rule-strong bg-paper-raised">
-            <h2 className="border-b border-rule-strong px-4 py-3 font-display text-lg font-extrabold tracking-tight sm:px-6">
-              Notes on this car
-            </h2>
-            <ul className="px-4 py-4 sm:px-6">
+          <Card title="Notes">
+            <ul className="px-4 py-3 sm:px-6">
               {listing.notes.map((note) => (
                 <li
                   key={note}
-                  className="mb-2 border-l-2 border-rule pl-3 font-serif text-[0.875rem] leading-relaxed text-ink-muted last:mb-0"
+                  className="mb-1.5 border-l-2 border-rule pl-2.5 font-serif text-[0.8125rem] leading-snug text-ink-muted last:mb-0"
                 >
                   {note}
                 </li>
               ))}
             </ul>
-          </section>
+          </Card>
 
           {priceable && (
-            <section className="border border-rule-strong bg-paper-raised">
-              <h2 className="border-b border-rule-strong px-4 py-3 font-display text-lg font-extrabold tracking-tight sm:px-6">
-                Where the price comes from
-              </h2>
-              <dl className="tnum px-4 py-4 font-mono text-[0.8125rem] sm:px-6">
-                <Fact label="Vehicle" value={formatMoney(quote.retailPriceCents, { cents: true })} />
-                <Fact label={`${listing.state} sales tax`} value={formatMoney(quote.salesTaxCents, { cents: true })} />
-                <Fact label="Doc fee" value={formatMoney(quote.docFeeCents, { cents: true })} />
-                <Fact label="Title & registration" value={formatMoney(quote.titleRegCents, { cents: true })} />
-                <Fact label="Out the door" value={formatMoney(quote.outTheDoorCents, { cents: true })} strong />
+            <Card title="The price">
+              <dl className="tnum px-4 py-3 font-mono text-[0.75rem] sm:px-6">
+                <Line label="Vehicle" value={formatMoney(quote.retailPriceCents, { cents: true })} />
+                <Line label={`${listing.state} tax`} value={formatMoney(quote.salesTaxCents, { cents: true })} />
+                <Line label="Doc fee" value={formatMoney(quote.docFeeCents, { cents: true })} />
+                <Line label="Title & reg" value={formatMoney(quote.titleRegCents, { cents: true })} />
+                <Line label="Out the door" value={formatMoney(quote.outTheDoorCents, { cents: true })} strong />
               </dl>
-              <p className="border-t border-rule px-4 py-3 font-serif text-[0.8125rem] leading-relaxed text-ink-muted sm:px-6">
-                DealerCars is the licensed dealer on this sale: we are the
-                seller, the creditor, and we hold the contract. Nothing is sold
-                on to a third-party lender.
+              <p className="border-t border-rule px-4 py-2 font-serif text-[0.75rem] leading-snug text-ink-muted sm:px-6">
+                We are the seller and the creditor. Nothing is sold on to a
+                third-party lender.
               </p>
-            </section>
+            </Card>
           )}
         </div>
       </div>
@@ -220,7 +203,37 @@ export default async function CarPage({
   );
 }
 
-function Fact({
+function Card({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border border-rule-strong bg-paper-raised">
+      <h2 className="border-b border-rule px-4 py-2 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-faint sm:px-6">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** Label over value, for the two-column spec grid. */
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-b border-rule py-1.5 last:border-0 [&:nth-last-child(2)]:border-0">
+      <dt className="text-[0.625rem] uppercase tracking-[0.08em] text-ink-faint">
+        {label}
+      </dt>
+      <dd className="truncate text-ink">{value}</dd>
+    </div>
+  );
+}
+
+/** Label beside value, for the price ledger. */
+function Line({
   label,
   value,
   strong,
@@ -230,15 +243,9 @@ function Fact({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-rule py-2 last:border-0">
-      <dt className="font-mono text-[0.75rem] uppercase tracking-[0.06em] text-ink-faint">
-        {label}
-      </dt>
-      <dd
-        className={`text-right font-mono text-[0.8125rem] ${
-          strong ? "font-semibold text-ink" : "text-ink"
-        }`}
-      >
+    <div className="flex items-baseline justify-between gap-4 border-b border-rule py-1.5 last:border-0">
+      <dt className="uppercase tracking-[0.06em] text-ink-faint">{label}</dt>
+      <dd className={`text-right ${strong ? "font-semibold text-ink" : "text-ink"}`}>
         {value}
       </dd>
     </div>

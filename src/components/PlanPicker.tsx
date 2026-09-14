@@ -188,195 +188,156 @@ export function PlanPicker({
 
   return (
     <section className="border border-rule-strong bg-paper-raised">
-      <header className="border-b border-rule-strong px-4 py-3 sm:px-6">
-        <h2 className="font-display text-lg font-extrabold tracking-tight">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-rule-strong px-4 py-2.5 sm:px-6">
+        <h2 className="font-display text-base font-extrabold tracking-tight">
           Build your payment
         </h2>
-        <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-          No interest, ever. Every plan below adds up to the same{" "}
-          <span className="tnum font-mono text-[0.875rem] text-ink">
-            {formatMoney(quote.outTheDoorCents, { cents: true })}
-          </span>{" "}
-          out-the-door price &mdash; the only thing that changes is how long you
-          take.
+        <p className="tnum font-mono text-[0.75rem] text-ink-muted">
+          {formatMoney(quote.outTheDoorCents, { cents: true })} out the door ·{" "}
+          <span className="text-accent">0% APR</span>
         </p>
       </header>
 
-      <div className="px-4 py-5 sm:px-6">
-        {/* -------------------------------------------------------- term */}
-        <fieldset>
-          <legend className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-            Pay it off over
-          </legend>
-          <div className={`mt-2 grid grid-cols-3 gap-2 ${settlingClass}`}>
-            {quote.plans
-              .filter((p): p is PaymentPlan => p.kind === "installments")
-              .map((p) => {
-                const selected = p.termMonths === termMonths;
-                return (
-                  <button
-                    key={p.termMonths}
-                    type="button"
-                    onClick={() => setTermMonths(p.termMonths)}
-                    aria-pressed={selected}
-                    className={`border px-3 py-3 text-left transition-colors ${
-                      selected
-                        ? "border-accent bg-paper text-ink"
-                        : "border-rule-strong bg-paper hover:border-accent"
-                    }`}
-                  >
-                    <span className="block font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-faint">
-                      {p.termMonths} months
-                    </span>
-                    <span className="tnum mt-1 block font-display text-lg font-bold tracking-tight">
-                      {formatMoney(p.monthlyPaymentCents, { cents: true })}
-                    </span>
-                    <span className="block font-serif text-[0.75rem] text-ink-muted">
-                      per month
-                    </span>
-                  </button>
-                );
-              })}
-          </div>
-        </fieldset>
-
-        {/* ---------------------------------------------- the two sliders */}
-        <p className="mt-6 font-serif text-[0.875rem] leading-relaxed text-ink-muted">
-          Drag either one. They are the same dial from opposite ends &mdash;
-          more down is less a month, and the total never changes.
-        </p>
-
-        {/* ------------------------------------------------ down payment */}
-        <div className="mt-4">
-          <div className="flex items-baseline justify-between gap-4">
-            <label
-              htmlFor="down"
-              className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-            >
-              Cash down today
-            </label>
-            <span className="tnum font-display text-2xl font-extrabold tracking-tight">
-              {formatMoney(downCents)}
-            </span>
-          </div>
-          <input
-            id="down"
-            type="range"
-            min={bounds.min}
-            max={bounds.max}
-            step={DOWN_STEP}
-            value={downCents}
-            onChange={(e) => setDownCents(Number(e.target.value))}
-            aria-valuetext={formatMoney(downCents)}
-            className="mt-2"
-          />
-          <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-            <span>{formatMoney(bounds.min)} minimum</span>
-            <span>{formatMoney(bounds.max)}</span>
-          </div>
+      {/* --------------------------------------------------------- term */}
+      <fieldset className="px-4 pt-4 sm:px-6">
+        <legend className="sr-only">Pay it off over</legend>
+        <div className="flex gap-1.5">
+          {quote.plans
+            .filter((p): p is PaymentPlan => p.kind === "installments")
+            .map((p) => {
+              const selected = p.termMonths === termMonths;
+              return (
+                <button
+                  key={p.termMonths}
+                  type="button"
+                  onClick={() => setTermMonths(p.termMonths)}
+                  aria-pressed={selected}
+                  className={`tnum flex-1 border px-2 py-1.5 font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] transition-colors ${
+                    selected
+                      ? "border-accent bg-accent text-accent-ink"
+                      : "border-rule-strong bg-paper text-ink-muted hover:border-accent hover:text-ink"
+                  }`}
+                >
+                  {p.termMonths} mo
+                </button>
+              );
+            })}
         </div>
+      </fieldset>
 
-        {/* ---------------------------------------------- monthly payment */}
-        <div className="mt-5">
-          <div className="flex items-baseline justify-between gap-4">
-            <label
-              htmlFor="monthly"
-              className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-            >
-              Per month
-            </label>
-            <span
-              className={`tnum font-display text-2xl font-extrabold tracking-tight text-brass ${settlingClass}`}
-            >
-              {plan
-                ? formatMoney(plan.monthlyPaymentCents, { cents: true })
-                : "—"}
-            </span>
-          </div>
-          <input
-            id="monthly"
-            type="range"
-            min={monthlyTravel.min}
-            max={monthlyTravel.max}
-            step={MONTHLY_STEP}
-            value={monthlyThumb}
-            onChange={(e) => setMonthly(Number(e.target.value))}
-            aria-valuetext={
-              plan
-                ? `${formatMoney(plan.monthlyPaymentCents, { cents: true })} per month`
-                : undefined
-            }
-            className="mt-2"
-          />
-          <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-            <span>{formatMoney(monthlyRange.min, { cents: true })}/mo</span>
-            <span>{formatMoney(monthlyRange.max, { cents: true })}/mo</span>
-          </div>
-        </div>
-
-        <p className="mt-3 font-serif text-[0.8125rem] leading-relaxed text-ink-muted">
-          The{" "}
-          <span className="tnum font-mono text-[0.75rem] text-ink">
-            {formatMoney(bounds.min)}
-          </span>{" "}
-          minimum is 18% of the out-the-door price &mdash;{" "}
-          <span className="tnum font-mono text-[0.75rem]">
-            {formatMoney(quote.minDownCents, { cents: true })}
+      {/* ---------------------------------------------- the one answer */}
+      {/* The result of the choice, not a menu of them. Three payments shown
+          side by side read as a comparison table and make the member do the
+          picking twice — once on term, once again on price. */}
+      <div className={`px-4 pt-4 sm:px-6 ${settlingClass}`}>
+        <p className="tnum flex items-baseline gap-2">
+          <span className="font-display text-5xl font-extrabold leading-none tracking-tight text-brass sm:text-6xl">
+            {plan ? formatMoney(plan.monthlyPaymentCents, { cents: true }) : "—"}
           </span>
-          , rounded up to the nearest {formatMoney(DOWN_STEP)}. A down payment
-          that size is the strongest predictor there is of a loan that
-          finishes, which is why it is the floor rather than a suggestion.
+          <span className="font-mono text-[0.8125rem] uppercase tracking-[0.08em] text-ink-muted">
+            /mo × {termMonths}
+          </span>
         </p>
+        {plan && (
+          <p className="tnum mt-1.5 font-mono text-[0.75rem] text-ink-muted">
+            {formatMoney(plan.downCents)} down · last payment{" "}
+            {formatMoney(plan.finalPaymentCents, { cents: true })} ·{" "}
+            <span className="text-accent">
+              {formatMoney(plan.financeChargeCents, { cents: true })} interest
+            </span>
+          </p>
+        )}
+      </div>
+
+      <div className="px-4 pb-5 pt-5 sm:px-6">
+        {/* ---------------------------------------------- down payment */}
+        {/* Two sliders, one dial. Labels carry the numbers so no prose has to. */}
+        <div className="flex items-baseline justify-between gap-4">
+          <label
+            htmlFor="down"
+            className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+          >
+            Cash down
+          </label>
+          <span className="tnum font-mono text-[0.875rem] font-semibold">
+            {formatMoney(downCents)}
+          </span>
+        </div>
+        <input
+          id="down"
+          type="range"
+          min={bounds.min}
+          max={bounds.max}
+          step={DOWN_STEP}
+          value={downCents}
+          onChange={(e) => setDownCents(Number(e.target.value))}
+          aria-valuetext={formatMoney(downCents)}
+          className="mt-1.5"
+        />
+        <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
+          <span>{formatMoney(bounds.min)} min · 18%</span>
+          <span>{formatMoney(bounds.max)}</span>
+        </div>
+
+        {/* -------------------------------------------- monthly payment */}
+        <div className="mt-4 flex items-baseline justify-between gap-4">
+          <label
+            htmlFor="monthly"
+            className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+          >
+            Or set the payment
+          </label>
+        </div>
+        <input
+          id="monthly"
+          type="range"
+          min={monthlyTravel.min}
+          max={monthlyTravel.max}
+          step={MONTHLY_STEP}
+          value={monthlyThumb}
+          onChange={(e) => setMonthly(Number(e.target.value))}
+          aria-valuetext={
+            plan
+              ? `${formatMoney(plan.monthlyPaymentCents, { cents: true })} per month`
+              : undefined
+          }
+          className="mt-1.5"
+        />
+        <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
+          <span>{formatMoney(monthlyRange.min, { cents: true })}/mo</span>
+          <span>{formatMoney(monthlyRange.max, { cents: true })}/mo</span>
+        </div>
 
         {belowFloor && (
           <p
             role="alert"
-            className="mt-3 border-l-2 border-accent bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-relaxed text-ink-muted"
+            className="tnum mt-3 border-l-2 border-accent bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-snug text-ink-muted"
           >
-            A down payment of at least{" "}
-            <span className="tnum font-mono text-[0.8125rem] text-ink">
-              {formatMoney(quote.minDownCents, { cents: true })}
-            </span>{" "}
-            is required on this car.
+            This car needs at least{" "}
+            {formatMoney(quote.minDownCents, { cents: true })} down.
           </p>
         )}
 
-        {/* ----------------------------------------------------- summary */}
         {plan && (
-          <div className={`mt-6 border-t border-rule pt-4 ${settlingClass}`}>
-            <dl className="tnum grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[0.8125rem]">
-              <Row label="Out-the-door price" value={formatMoney(quote.outTheDoorCents, { cents: true })} />
-              <Row label="Cash down" value={`− ${formatMoney(plan.downCents, { cents: true })}`} />
-              <Row label="Amount financed" value={formatMoney(plan.amountFinancedCents, { cents: true })} strong />
-              <Row label="Finance charge" value={formatMoney(plan.financeChargeCents, { cents: true })} accent />
-              <Row
-                label={`${plan.termMonths - 1} payments of`}
-                value={formatMoney(plan.monthlyPaymentCents, { cents: true })}
+          <>
+            {/* The breakdown, as one line rather than a seven-row ledger. The
+                figures a member is owed in full are in the disclosure below;
+                this is orientation, not the disclosure itself. */}
+            <dl
+              className={`tnum mt-5 flex flex-wrap gap-x-5 gap-y-1 border-t border-rule pt-3 font-mono text-[0.75rem] ${settlingClass}`}
+            >
+              <Fact label="Financed" value={formatMoney(plan.amountFinancedCents, { cents: true })} />
+              <Fact label="Interest" value={formatMoney(plan.financeChargeCents, { cents: true })} accent />
+              {/* Deliberately not paired with the cash price here: the header
+                  already states it, and printing the same figure twice in one
+                  strip reads as a mistake rather than as the proof it is. */}
+              <Fact
+                label="You pay in total"
+                value={formatMoney(plan.downCents + plan.totalOfPaymentsCents, { cents: true })}
               />
-              <Row label="Final payment" value={formatMoney(plan.finalPaymentCents, { cents: true })} />
-              <Row label="Total of payments" value={formatMoney(plan.totalOfPaymentsCents, { cents: true })} strong />
             </dl>
 
-            <p className="mt-3 font-serif text-[0.875rem] leading-relaxed text-ink-muted">
-              You pay{" "}
-              <span className="tnum font-mono text-[0.8125rem] text-ink">
-                {formatMoney(plan.downCents + plan.totalOfPaymentsCents, { cents: true })}
-              </span>{" "}
-              in total &mdash; exactly the cash price. Financing this car costs
-              nothing extra.
-            </p>
-
-            {/* Reg Z: a stated down payment and a stated monthly payment are
-                both trigger terms. This ships with them. */}
-            <RegZDisclosure plan={plan} className="mt-4" />
-
-            <ComparisonNote
-              outTheDoorCents={quote.outTheDoorCents}
-              downCents={plan.downCents}
-              termMonths={plan.termMonths}
-            />
-
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
                 disabled={loading || belowFloor}
@@ -396,23 +357,32 @@ export function PlanPicker({
                   onClick={() => startCheckout("cash")}
                   className="border border-rule-strong bg-paper px-5 py-3 font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent disabled:opacity-40"
                 >
-                  Pay {formatMoney(cash.totalOfPaymentsCents)} in full
+                  Pay {formatMoney(cash.totalOfPaymentsCents, { cents: true })} in full
                 </button>
               )}
             </div>
 
-            <p className="mt-2 font-serif text-[0.8125rem] leading-relaxed text-ink-muted">
-              Apple Pay is available at checkout. Your down payment goes
-              directly to the selling dealer and is refundable in full until you
-              sign the contract at your visit.
+            <p className="mt-2 font-serif text-[0.8125rem] leading-snug text-ink-muted">
+              Refundable in full until you sign at your visit. Apple Pay
+              available.
             </p>
+
+            {/* Reg Z: a stated down payment and a stated monthly payment are
+                both trigger terms. This ships with them. */}
+            <RegZDisclosure plan={plan} className="mt-4" />
+
+            <ComparisonNote
+              outTheDoorCents={quote.outTheDoorCents}
+              downCents={plan.downCents}
+              termMonths={plan.termMonths}
+            />
 
             {error && (
               <div
                 role="alert"
                 className="mt-3 border-l-2 border-accent bg-paper-sunken px-3 py-2"
               >
-                <p className="font-serif text-[0.875rem] leading-relaxed text-ink">
+                <p className="font-serif text-[0.875rem] leading-snug text-ink">
                   {error}
                 </p>
                 {reasons && (
@@ -424,10 +394,30 @@ export function PlanPicker({
                 )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </section>
+  );
+}
+
+/** One label-over-value pair in the breakdown strip. */
+function Fact({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-[0.625rem] uppercase tracking-[0.08em] text-ink-faint">
+        {label}
+      </dt>
+      <dd className={accent ? "text-brass" : "text-ink"}>{value}</dd>
+    </div>
   );
 }
 
@@ -449,7 +439,7 @@ function ComparisonNote({
   downCents: number;
   termMonths: number;
 }) {
-  const { plan, extraCostCents, extraPerMonthCents } = financingComparison(
+  const { plan, extraCostCents } = financingComparison(
     outTheDoorCents,
     downCents,
     termMonths
@@ -458,54 +448,21 @@ function ComparisonNote({
 
   return (
     <div className="mt-4 border-t border-rule pt-3">
-      <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-        For comparison &mdash; not available here
-      </p>
-      <p className="tnum mt-1 font-serif text-[0.875rem] leading-relaxed text-ink-muted">
-        A typical buy-here-pay-here lender charges around{" "}
-        {formatBps(plan.aprBps)} APR. The same car, same{" "}
-        {formatMoney(downCents)} down, over the same {termMonths} months would
-        be{" "}
-        <span className="font-mono text-[0.8125rem] text-ink">
+      <p className="tnum font-serif text-[0.8125rem] leading-snug text-ink-muted">
+        <span className="font-mono text-[0.625rem] uppercase tracking-[0.08em] text-ink-faint">
+          Not available here &mdash;{" "}
+        </span>
+        at a typical {formatBps(plan.aprBps)} BHPH rate this car would be{" "}
+        <span className="font-mono text-[0.75rem] text-ink">
           {formatMoney(plan.monthlyPaymentCents, { cents: true })}
-        </span>{" "}
-        a month &mdash;{" "}
-        <span className="font-mono text-[0.8125rem] text-ink">
-          {formatMoney(extraPerMonthCents, { cents: true })}
-        </span>{" "}
-        more &mdash; and{" "}
-        <span className="font-mono text-[0.8125rem] text-brass">
+        </span>
+        /mo and cost{" "}
+        <span className="font-mono text-[0.75rem] text-brass">
           {formatMoney(extraCostCents, { cents: true })}
         </span>{" "}
-        more in total, all of it interest. That is the money you keep.
+        more in interest. That is the money you keep.
       </p>
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  strong,
-  accent,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-  accent?: boolean;
-}) {
-  return (
-    <>
-      <dt className={`text-ink-muted ${strong ? "font-medium text-ink" : ""}`}>
-        {label}
-      </dt>
-      <dd
-        className={`text-right ${strong ? "font-semibold text-ink" : "text-ink"} ${
-          accent ? "text-brass" : ""
-        }`}
-      >
-        {value}
-      </dd>
-    </>
-  );
-}
