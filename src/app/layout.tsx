@@ -28,9 +28,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DealerCars — Your budget bids at the dealer auction",
+  title: "DealerCars — Used cars with no interest, ever",
   description:
-    "Consumers can't bid at wholesale auto auctions. DealerCars verifies your budget first, solves it into a maximum auction bid, and a licensed partner dealer bids on a car that is already yours. Four cars drop every Monday.",
+    "We buy the cars, hold the title, and carry the loan ourselves. Every car shows its full out-the-door price, and you can split that exact price over 12, 24 or 36 months without paying a cent of interest.",
 };
 
 export default function RootLayout({

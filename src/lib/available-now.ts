@@ -1,29 +1,30 @@
 /**
- * Cars available now — the path that does not wait for Thursday's auction.
+ * The cars on the lot: specific vehicles a member can see this week, put cash
+ * down on, and drive home once the paperwork clears.
  *
- * The Monday drop prices a car the dealer has not bought yet. This file is the
- * other case: a specific car that exists, that a member can see this week, put
- * cash down on, and drive home once the paperwork clears.
- *
- * The structure is unchanged and non-negotiable. A private-party seller cannot
+ * One rule about sourcing is non-negotiable. A private-party seller cannot
  * originate consumer credit — they hold no license, cannot perfect a lien, and
- * cannot hold the paper. So a "street" listing is always a two-step: the
- * partner dealer buys the car, takes title, recons it, and retails it. The
- * member's contract is with the dealer, exactly as with an auction car.
+ * cannot hold the paper. So a "street" listing is always a two-step: we buy the
+ * car, take title, recon it, and retail it. The member's contract is with us as
+ * the licensed dealer, whatever channel the car came through.
+ *
+ * This file is now a SEED and a no-database fallback only. Live inventory is
+ * read from the `listings` table through `listing-store.ts`, because a car that
+ * can only be added by editing TypeScript and redeploying is not inventory.
  */
 
 import type { RetailListing } from "./types";
 
 /**
- * Live sourcing list. Stands in for the `vehicles` table until dealers are
- * actually onboarded — same role `mock-lots.ts` plays for auction inventory.
+ * Seed inventory. Read `listing-store.ts` instead for anything user-facing —
+ * this array exists so local development without a database still renders.
  */
 export const AVAILABLE_NOW: RetailListing[] = [
   {
     id: "listing_mazda3_orl_2014",
     source: "street",
-    // Sourced, NOT acquired: the dealer has not bought this car yet, so it
-    // cannot be delivered and no down payment may be collected against it.
+    // Sourced, NOT acquired: we have not bought this car yet, so it cannot
+    // be delivered and no down payment may be collected against it.
     status: "sourced",
     listingUrl: "https://www.facebook.com/share/1DMN3HaUYh/",
     sellerName: "Luis Cavero",
@@ -64,6 +65,11 @@ export const AVAILABLE_NOW: RetailListing[] = [
 
     ownerCount: 1,
     sellerWarrantyMonths: 3,
+    // The seed carries no photographs. Photos live in the `listing_photos`
+    // table and the storage bucket, both of which need a database — a
+    // hardcoded array cannot hold them, which is much of why inventory moved
+    // to `listing-store.ts`.
+    photos: [],
     notes: [
       "Seller states AC is ice-cold, one owner, 3-month engine and transmission warranty.",
       "That warranty is a private-party promise and does not survive the sale — it cannot be passed to the member, and it must not appear in the member's paperwork.",

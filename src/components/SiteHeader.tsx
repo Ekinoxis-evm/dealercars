@@ -12,16 +12,16 @@ export function SiteHeader() {
         </Link>
         <nav className="flex items-baseline gap-4 sm:gap-6">
           <Link
-            href="/cars/listing_mazda3_orl_2014"
+            href="/cars"
             className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink-muted underline-offset-4 hover:text-ink hover:underline"
           >
-            Available now
+            Cars
           </Link>
           <Link
-            href="/drop"
+            href="/#budget"
             className="hidden font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink-muted underline-offset-4 hover:text-ink hover:underline sm:inline"
           >
-            Monday drop
+            What can I afford
           </Link>
           <Link
             href="/account"

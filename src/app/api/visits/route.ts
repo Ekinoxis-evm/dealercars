@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireMember, Unauthorized, unauthorizedResponse } from "@/lib/auth";
-import { findListing } from "@/lib/available-now";
-import { findDealer } from "@/lib/dealers";
+import { loadDealer } from "@/lib/dealer-store";
+import { loadListing } from "@/lib/listing-store";
 import { supabaseAdmin } from "@/lib/supabase";
 import { availableSlots, SLOT_MINUTES, MIN_LEAD_HOURS } from "@/lib/visits";
 
@@ -22,10 +22,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "listingId is required" }, { status: 400 });
   }
 
-  const listing = findListing(listingId);
+  const listing = await loadListing(listingId);
   if (!listing) return NextResponse.json({ error: "No such vehicle" }, { status: 404 });
 
-  const dealer = findDealer(listing.dealerId);
+  const dealer = await loadDealer(listing.dealerId);
   if (!dealer) return NextResponse.json({ error: "No dealer" }, { status: 500 });
 
   if (!VISITABLE.has(listing.status)) {
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const listing = findListing(listingId);
+  const listing = await loadListing(listingId);
   if (!listing) return NextResponse.json({ error: "No such vehicle" }, { status: 404 });
   if (!VISITABLE.has(listing.status)) {
     return NextResponse.json(
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const dealer = findDealer(listing.dealerId);
+  const dealer = await loadDealer(listing.dealerId);
   if (!dealer) return NextResponse.json({ error: "No dealer" }, { status: 500 });
 
   // The slot must be one we actually offered. Accepting an arbitrary timestamp

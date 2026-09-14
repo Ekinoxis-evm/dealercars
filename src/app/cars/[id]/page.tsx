@@ -1,26 +1,41 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AVAILABLE_NOW, findListing } from "@/lib/available-now";
+import { loadListing } from "@/lib/listing-store";
 import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { minDownFor, quoteListing, formatMoney } from "@/lib/finance";
-import { findDealer, dealerBlockReason } from "@/lib/dealers";
-import { PlanPicker } from "@/components/PlanPicker";
-import { VisitScheduler } from "@/components/VisitScheduler";
+import { clampDown, downBounds } from "@/lib/payment-slider";
+import { loadDealer } from "@/lib/dealer-store";
+import { dealerBlockReason } from "@/lib/dealers";
+import { PlanPicker, VisitScheduler } from "@/components/privy-deferred";
+import { CarGallery } from "@/components/CarGallery";
 
-export function generateStaticParams() {
-  return AVAILABLE_NOW.map((l) => ({ id: l.id }));
-}
+/**
+ * Rendered on demand and cached for a minute, rather than statically generated.
+ *
+ * Inventory now lives in the database, so the set of cars is not known at build
+ * time and a price or a status can change on a weekday afternoon. Sixty seconds
+ * is the staleness we accept on a marketing page; it is not the enforcement
+ * boundary. Whether money may actually be taken is re-decided server-side on
+ * every request in the down-payment route, against the same row.
+ */
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const listing = findListing((await params).id);
+  const listing = await loadListing((await params).id);
   if (!listing) return { title: "Car not found — DealerCars" };
   return {
     title: `${listing.year} ${listing.make} ${listing.model} — DealerCars`,
-    description: `${listing.mileage.toLocaleString("en-US")} miles, ${listing.city}, ${listing.state}. Cash down and interest-free monthly payments through a licensed partner dealer.`,
+    description: `${listing.mileage.toLocaleString("en-US")} miles, ${listing.city}, ${listing.state}. Cash down and interest-free monthly payments.`,
+    // Deliberately no down payment or monthly figure in the description: a
+    // share card is an advertisement, and a trigger term there would need the
+    // Reg Z disclosure alongside it, which a meta description cannot carry.
+    openGraph: listing.photos[0]
+      ? { images: [{ url: listing.photos[0].url }] }
+      : undefined,
   };
 }
 
@@ -29,14 +44,23 @@ export default async function CarPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const listing = findListing((await params).id);
+  const listing = await loadListing((await params).id);
   if (!listing) notFound();
 
-  const dealer = findDealer(listing.dealerId);
+  const dealer = await loadDealer(listing.dealerId);
   const priceable = hasDealCostsFor(listing.state);
   const costs = dealCostsFor(listing.state);
+  // Quote at the down payment the slider will actually start on, not at the
+  // raw 18% floor. The two differ by a few dollars once the floor is rounded up
+  // onto the slider's grid, and quoting at the raw figure would make the first
+  // paint show a payment the picker corrects a beat later.
   const provisional = quoteListing(listing, costs, 0);
-  const quote = quoteListing(listing, costs, minDownFor(provisional.outTheDoorCents));
+  const minDownCents = minDownFor(provisional.outTheDoorCents);
+  const startingDownCents = clampDown(
+    minDownCents,
+    downBounds(minDownCents, provisional.outTheDoorCents)
+  );
+  const quote = quoteListing(listing, costs, startingDownCents);
 
   const blockReason = dealer ? dealerBlockReason(dealer) : "No dealer is assigned to this car.";
   const isSourced = listing.status === "sourced";
@@ -71,6 +95,12 @@ export default async function CarPage({
         )}
       </header>
 
+      {/* ------------------------------------------------------ gallery */}
+      <CarGallery
+        photos={listing.photos}
+        label={`${listing.year} ${listing.make} ${listing.model}`}
+      />
+
       {/* ---------------------------------------------------- interlock */}
       {isSourced && (
         <div className="mt-6 border-l-2 border-accent bg-paper-raised px-4 py-4 sm:px-6">
@@ -78,11 +108,10 @@ export default async function CarPage({
             This car is being sourced, not sold yet.
           </h2>
           <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-            It is a private-party listing the partner dealer has not bought.
-            Nobody can take a payment on a car nobody holds title to, so
-            checkout is closed until the dealer acquires it, has it inspected,
-            and puts it on the lot. The figures below are what it will cost when
-            that happens.
+            It is a private-party listing we have not bought yet. Nobody can
+            take a payment on a car nobody holds title to, so checkout is closed
+            until we acquire it, have it inspected, and put it on the lot. The
+            figures below are what it will cost when that happens.
           </p>
         </div>
       )}
@@ -139,6 +168,17 @@ export default async function CarPage({
             </p>
           </section>
 
+          {listing.description && (
+            <section className="border border-rule-strong bg-paper-raised">
+              <h2 className="border-b border-rule-strong px-4 py-3 font-display text-lg font-extrabold tracking-tight sm:px-6">
+                About this car
+              </h2>
+              <p className="whitespace-pre-line px-4 py-4 font-serif text-[0.9375rem] leading-relaxed text-ink-muted sm:px-6">
+                {listing.description}
+              </p>
+            </section>
+          )}
+
           <section className="border border-rule-strong bg-paper-raised">
             <h2 className="border-b border-rule-strong px-4 py-3 font-display text-lg font-extrabold tracking-tight sm:px-6">
               Notes on this car
@@ -168,9 +208,9 @@ export default async function CarPage({
                 <Fact label="Out the door" value={formatMoney(quote.outTheDoorCents, { cents: true })} strong />
               </dl>
               <p className="border-t border-rule px-4 py-3 font-serif text-[0.8125rem] leading-relaxed text-ink-muted sm:px-6">
-                The seller is the licensed partner dealer, who is also the
-                creditor and holds the contract. DealerCars is software and is
-                never the lender.
+                DealerCars is the licensed dealer on this sale: we are the
+                seller, the creditor, and we hold the contract. Nothing is sold
+                on to a third-party lender.
               </p>
             </section>
           )}

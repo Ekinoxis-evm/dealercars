@@ -25,11 +25,10 @@ export async function GET(request: Request) {
 /**
  * Update the member's own profile.
  *
- * Note what is NOT writable here: the three verification statuses, membership
- * status, and the Stripe ids. A member stating an income is an application,
- * not a verification — letting a PATCH set `income_verification: 'verified'`
- * would turn the underwriting gate into a formality. Those columns move only
- * from the verification and webhook paths.
+ * Note what is NOT writable here: the three verification statuses. A member
+ * stating an income is an application, not a verification — letting a PATCH
+ * set `income_verification: 'verified'` would turn the underwriting gate into
+ * a formality. Those columns move only from the verification path.
  */
 export async function PATCH(request: Request) {
   let member;

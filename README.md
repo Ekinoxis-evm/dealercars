@@ -1,8 +1,8 @@
 # DealerCars
 
-**Buy-to-order financing for Buy-Here-Pay-Here dealers.** Match a pre-qualified buyer to a
-specific wholesale auction lot *before anyone bids* — so the dealer only buys cars that are
-already sold.
+**A Buy-Here-Pay-Here dealership where nothing costs interest.** We buy the cars, hold the
+title, and carry the paper ourselves — so every car on the lot has one price, and that price
+can be paid over three years without a finance charge.
 
 ---
 
@@ -12,62 +12,75 @@ Every Buy-Here-Pay-Here lot in America runs on two guesses: which cars will sell
 buyers will pay. Both are made with a spreadsheet and a gut feel, and both are expensive when
 wrong.
 
-A dealer buys eight cars at a Tuesday auction hoping the right customers walk in — roughly
-$9,000 of capital sitting per unit. Meanwhile a customer with $2,500 cash and $400/month of
-real capacity picks from whatever happens to be on the lot, which is rarely the car that fits
-their budget and often the car that breaks in month four and ends the payments.
+The customer's side is worse. Someone with $2,500 cash and $400/month of real capacity picks
+from whatever happens to be on the lot — rarely the car that fits their budget, often the car
+that breaks in month four and ends the payments. Then the price on the windshield turns out not
+to be the price: tax, title, doc fee and a finance charge at 20-some percent land on top of it,
+and by the end they have paid for the car roughly twice.
 
-Wholesale auctions are dealer-license-only, so the customer can never see the source.
+## What we do instead
 
-## The inversion
+One price per car, stated as the out-the-door price with tax, title, registration and the doc
+fee already in it. Pay it in full, or split that exact number over 12, 24 or 36 months. The
+payments add up to the cash price to the cent, because the finance charge is a true $0.00.
 
-The member's budget is verified **first**. We solve it backwards into a maximum auction bid,
-search live auction inventory against that ceiling, and send four real lots. The member commits
-to one. Only then does the dealer bid — on a car with a buyer already attached, at a price that
-mathematically produces a payment the buyer can carry.
-
-Inventory risk goes to zero. Default rates drop, because the payment was engineered from
-verified income rather than negotiated at a desk.
+The return is the front-end gross on the car, not interest on the customer. That is the whole
+business model, and it is why `targetGrossCents` matters more here than an APR band does.
 
 ```
-STEP 1  Member      Set the envelope        $2,500 down · $400/mo ceiling
-STEP 2  Platform    Ability-to-pay prequal  soft pull + bank cash flow → APR band, bid ceiling
-STEP 3  Platform    The Monday drop         4 live lots that clear the ceiling
-STEP 4  Member      Commit to one           refundable deposit hold, closes Wednesday
-STEP 5  Dealer      Bid to the ceiling      buys only what is already sold
-STEP 6  Dealer      Recon, contract, autopay
+STEP 1  DealerCars   Buy the car          auction or private party, inspected and titled
+STEP 2  DealerCars   Price it             one out-the-door number, fees included
+STEP 3  Member       Pick a plan          cash, or 12 / 24 / 36 months at 0%
+STEP 4  DealerCars   Ability-to-pay check capacity, not FICO
+STEP 5  Member       Visit and drive it   refundable deposit holds it for the appointment
+STEP 6  DealerCars   Contract and autopay we are the seller AND the creditor
 ```
 
 ## The math
 
-The whole engine is one equation run backwards — given what someone can pay each month, what
-is the most we can pay for the car?
+Two directions, both in [`src/lib/finance.ts`](src/lib/finance.ts), both pure and tested.
+
+Forward — what one car costs:
 
 ```
-i     = APR / 12
-A_max = M × (1 − (1 + i)^−n) / i                          ← max amount financed
-P_max = (A_max + D − doc_fee − title_reg) / (1 + tax)     ← max retail price
-B_max = P_max − recon − transport − buy_fee − gross       ← max auction bid
+retail  = acquisition + buy_fee + transport + recon + gross   (or an admin override)
+OTD     = retail + sales_tax(retail) + doc_fee + title_reg
+monthly = floor((OTD − down) / n)     ← final payment absorbs the remainder
 ```
 
-Worked: `M=$400, D=$2,500, 22% APR, 36mo, 7% tax` → **bid ceiling $7,265**. That single number
-goes straight into the auction search, and every lot that comes back is by construction a car
-this person can afford.
+Backward — what one budget reaches:
 
-See [`src/lib/finance.ts`](src/lib/finance.ts) and [`src/lib/scoring.ts`](src/lib/scoring.ts).
+```
+i     = APR / 12                                           (zero, on every plan we offer)
+A_max = M × (1 − (1 + i)^−n) / i  →  M × n at 0%           ← max amount financed
+OTD_max = A_max + D                                        ← what the inventory filter runs on
+P_max = (OTD_max − doc_fee − title_reg) / (1 + tax)        ← the sticker that leaves room
+```
+
+Worked, and pinned by the tests: the Orlando 2014 Mazda3 lands at **$12,831.70 out the door**
+in Orange County, FL — at $4,000 down over 36 interest-free months, **$245.32/month with a
+$245.50 final payment**. Down plus every scheduled payment equals the cash price exactly. If
+that identity breaks, the product is not interest-free and the disclosure is a misstatement.
+
+Note the two branches that look like over-engineering and are not: `sumScheduledPayments`
+derives the total of payments from the real schedule rather than `payment × term` (at 0% the
+difference is the difference between disclosing $0.00 and disclosing a negative finance
+charge), and `salesTaxOn` treats Florida's county surtax as capped at a $5,000 base rather than
+blending it into one rate.
 
 ## Underwriting
 
 Ability to pay, not FICO — this population has thin or damaged files by definition, and a
-FICO-first model rejects the entire market.
+FICO-first model rejects the entire market. Thresholds live in `UNDERWRITING`
+([`src/lib/types.ts`](src/lib/types.ts)); changing one is a product decision, not a refactor.
 
 | Criterion | Threshold | Why it predicts |
 |---|---|---|
 | Payment-to-income | ≤ 20% of gross | The hardest constraint. Above 20%, any shock ends the loan. |
 | Down payment | ≥ 18% of out-the-door | Strongest default predictor in BHPH. |
 | Verified income | 2 months cash flow | Stated income is fiction. |
-| Time at job | ≥ 6 months | Proxy for income continuity. |
-| Prior repossession | None in 12 months | Clearest available signal. |
+| Mileage | ≤ 150,000 | Past it, repair risk outruns the term. |
+| Term | ≤ 48 months | Longer than the car lasts is not a loan, it is a deferral. |
 | Durability score | model × mileage band | A car that breaks in month four stops being paid for. |
 
 ## Stack
@@ -76,38 +89,39 @@ FICO-first model rejects the entire market.
 |---|---|
 | App | Next.js 15 (App Router), React 19, TypeScript |
 | Styling | Tailwind v4 |
-| Data / auth | Supabase (Postgres + RLS) — *not yet wired* |
-| Subscriptions | Stripe Billing — *not yet wired* |
-| Money movement | Stripe Connect (Express), dealer as connected account — *not yet wired* |
-| Installments | Stripe ACH Direct Debit — *not yet wired* |
-| Auction data | Manheim Listings Search + MMR — *mocked in `src/lib/mock-lots.ts`* |
+| Auth | Privy (email / SMS / Google), wallets explicitly off |
+| Data | Supabase (Postgres, RLS enabled with no policies, service-role routes) |
+| Photos | Supabase Storage, public bucket — car photographs are the advertisement |
+| Money movement | Stripe Connect, dealer as the connected account |
+| Installments | Stripe off-session charges, driven by our own schedule |
 | Hosting | Vercel |
 
 **Deliberately not used:** embedded wallets, stablecoins, smart contracts. This is US-regulated
-consumer credit — the borrower needs a bank account for ACH, the dealer needs a lien perfected
-with a state DMV, and the contract needs to be enforceable in a county court. None of the money
-flow benefits from being trustless.
+consumer credit — the borrower needs a bank account for ACH, we need a lien perfected with a
+state DMV, and the contract needs to be enforceable in a county court. None of the money flow
+benefits from being trustless.
 
 ## Status
 
 Pre-launch. What runs today:
 
-- ✅ Budget solver, amortization, and TILA disclosure computation, with tests
-- ✅ Lot scoring and ranking, with hard rejects on branded titles, over-mileage and frame damage
-- ✅ Landing page with a live bid-ceiling calculator
-- ✅ The Monday drop, rendered from mock auction inventory
-- ⬜ Supabase schema, RLS and auth
-- ⬜ Stripe Billing and Connect
-- ⬜ Manheim API ingest
-- ⬜ Origination, e-signed contracts, ACH servicing
+- ✅ Pricing, amortization, payment plans and TILA computation, with tests
+- ✅ The lot: `/cars` index with budget filtering and sort, `/cars/[id]` detail pages
+- ✅ Admin inventory and photo management, gated on a row in `admins` by Privy DID
+- ✅ Privy auth, member profiles, visit scheduling
+- ✅ Stripe Connect down payments and deposits as direct charges, webhook-driven
+- ⬜ Licensing: FL Ch. 320.27 dealer and Ch. 520 retail installment seller — the critical path
+- ⬜ Vendor RISC forms and e-signature
+- ⬜ ACH servicing of the installment schedule
 
 ## Develop
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # finance engine tests
+npm test           # the finance engine must stay green
 npm run typecheck
+npm run build      # catches server/client boundary errors typecheck misses
 ```
 
 ## Money convention
@@ -117,18 +131,25 @@ rounding error in a retail installment contract is a Reg Z problem, not a displa
 
 ## Compliance notes for contributors
 
-This repository touches US consumer credit. Two rules are load-bearing:
+This repository touches US consumer credit. Three rules are load-bearing:
 
 1. **Regulation Z advertising trigger terms.** Stating a down payment or a monthly payment
    figure in an advertisement legally obligates disclosing the APR, terms of repayment, and
-   total of payments in the same creative. Every surface showing "$2,500 down" or "$387/month"
+   total of payments in the same creative. Every surface showing "$4,000 down" or "$245/month"
    must carry `<RegZDisclosure />`. This is not fine print to add later.
 
-2. **The TILA disclosure is immutable once signed.** Never recompute it from live rows.
+2. **0% APR is still Regulation Z credit.** A creditor is one who extends consumer credit
+   payable in more than four installments *or* for which a finance charge is imposed
+   (12 CFR 1026.2(a)(17)). Every plan we offer is a credit sale. The disclosure gets simple and
+   attractive, not optional.
+
+3. **The TILA disclosure is immutable once signed.** Never recompute it from live rows.
    Snapshot it at signature and render every future statement from that snapshot.
 
-DealerCars is software. It is not a lender, a dealer, or a creditor. Financing is originated and
-held by licensed partner dealers. Nothing in this repository is legal advice, and any deployment
+DealerCars is the dealer: the seller and the creditor on every retail installment contract, and
+the holder of the paper. That is not a posture, it is a licensing obligation — a used motor
+vehicle dealer licence and a retail installment seller licence must both be in hand before a
+single contract is written. Nothing in this repository is legal advice, and any deployment
 requires review by qualified counsel in the operating jurisdiction.
 
 ## License

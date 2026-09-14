@@ -4,11 +4,28 @@ import { useEffect, useMemo, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { financingComparison, formatBps, formatMoney } from "@/lib/finance";
+import {
+  DOWN_STEP,
+  MONTHLY_STEP,
+  clampDown,
+  downBounds,
+  downForMonthly,
+  monthlyBounds,
+  monthlySliderRange,
+  monthlyThumbFor,
+} from "@/lib/payment-slider";
 import type { PaymentPlan, PriceQuote, RetailListing } from "@/lib/types";
 import { RegZDisclosure } from "./RegZDisclosure";
 
 /**
- * Choose a down payment and a term, and see the real monthly payment.
+ * Build a payment on one specific car.
+ *
+ * Three controls, and they describe one plan from three sides: how long you
+ * take, how much you put down, and what you pay a month. Down payment and
+ * monthly payment are the SAME DIAL from opposite ends — at a fixed term and a
+ * fixed price, `monthly = (price − down) / term` — so the monthly slider does
+ * not introduce a second source of truth. It sets the down payment; the figure
+ * it is labelled with still comes back from the server.
  *
  * Two rules govern this component:
  *
@@ -18,13 +35,26 @@ import { RegZDisclosure } from "./RegZDisclosure";
  *     disagree with the server by a cent, and a disclosed payment that is off
  *     by a cent is a Reg Z problem, not a rounding bug.
  *
+ *     The projections below are the one exception, and a narrow one: they
+ *     position the slider thumbs while a drag is in flight, and they are never
+ *     the figure a member reads. Anything a member reads — the headline
+ *     payment, the summary table, the disclosure — is dimmed until the server
+ *     confirms it rather than being replaced by a guess.
+ *
  *  2. A down payment and a monthly payment are both Reg Z trigger terms, so
  *     <RegZDisclosure /> is not optional here. It ships with the numbers.
  */
 
-const DOWN_MIN = 2000_00;
-const DOWN_MAX = 4000_00;
-const DOWN_STEP = 50_00;
+/**
+ * The down payment range comes from the CAR, not from a constant.
+ *
+ * It used to be a flat $2,000–$4,000, which was wrong in both directions: on a
+ * $6,000 car it demanded far more down than the underwriting floor asks for,
+ * and on anything above roughly $22,000 the 18% floor landed above the
+ * maximum, so `belowFloor` was permanently true and checkout could never open.
+ * The geometry now comes from `payment-slider.ts`, which the car page shares so
+ * the server-rendered quote already sits where the slider will land.
+ */
 
 export function PlanPicker({
   listing,
@@ -35,8 +65,17 @@ export function PlanPicker({
 }) {
   const { authenticated, login } = usePrivy();
 
-  const startingDown = clampDown(initialQuote.minDownCents);
-  const [downCents, setDownCents] = useState(startingDown);
+  // The car's price fixes the whole range. Computed from the initial quote,
+  // which is server-rendered, so the sliders are correct in the first paint
+  // rather than snapping into place once a fetch lands.
+  const bounds = useMemo(
+    () => downBounds(initialQuote.minDownCents, initialQuote.outTheDoorCents),
+    [initialQuote.minDownCents, initialQuote.outTheDoorCents]
+  );
+
+  const [downCents, setDownCents] = useState(() =>
+    clampDown(initialQuote.minDownCents, bounds)
+  );
   const [quote, setQuote] = useState<PriceQuote>(initialQuote);
   const [termMonths, setTermMonths] = useState(36);
   const [loading, setLoading] = useState(false);
@@ -69,6 +108,49 @@ export function PlanPicker({
   );
   const cash = quote.plans.find((p) => p.kind === "cash");
   const belowFloor = downCents < quote.minDownCents;
+
+  /**
+   * Where the monthly slider's thumb sits, projected from the down payment the
+   * member is dragging right now. Never rendered as a figure — the payment
+   * they read comes from `plan`, which is the server's.
+   */
+  /** What the ends actually cost — these are the figures a member reads. */
+  const monthlyRange = useMemo(
+    () => monthlyBounds(quote.outTheDoorCents, termMonths, bounds),
+    [quote.outTheDoorCents, termMonths, bounds]
+  );
+  /** The grid the thumb travels on, which is wider by up to a step each end. */
+  const monthlyTravel = useMemo(
+    () => monthlySliderRange(quote.outTheDoorCents, termMonths, bounds),
+    [quote.outTheDoorCents, termMonths, bounds]
+  );
+
+  const monthlyThumb = monthlyThumbFor(
+    quote.outTheDoorCents,
+    downCents,
+    termMonths,
+    bounds
+  );
+
+  /** Dragging the monthly slider sets the down payment it implies. */
+  function setMonthly(monthlyCents: number) {
+    setDownCents(
+      downForMonthly(quote.outTheDoorCents, monthlyCents, termMonths, bounds)
+    );
+  }
+
+  /**
+   * The quote on screen was computed at `quote.downCents`; the member may have
+   * already dragged past it. While those disagree, a figure is in flight.
+   *
+   * Dimmed, never replaced by a local guess: a payment that has not come back
+   * from the server must not read as confirmed, and the projections above are
+   * only good enough to position a thumb.
+   */
+  const settlingClass =
+    downCents !== quote.downCents
+      ? "opacity-50 transition-opacity"
+      : "transition-opacity";
 
   async function startCheckout(kind: "plan" | "cash") {
     setError(null);
@@ -121,53 +203,12 @@ export function PlanPicker({
       </header>
 
       <div className="px-4 py-5 sm:px-6">
-        {/* ------------------------------------------------ down payment */}
-        <div className="flex items-baseline justify-between gap-4">
-          <label
-            htmlFor="down"
-            className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-          >
-            Cash down today
-          </label>
-          <span className="tnum font-display text-2xl font-extrabold tracking-tight">
-            {formatMoney(downCents)}
-          </span>
-        </div>
-        <input
-          id="down"
-          type="range"
-          min={DOWN_MIN}
-          max={DOWN_MAX}
-          step={DOWN_STEP}
-          value={downCents}
-          onChange={(e) => setDownCents(Number(e.target.value))}
-          className="mt-2"
-        />
-        <div className="flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-          <span>{formatMoney(DOWN_MIN)}</span>
-          <span>{formatMoney(DOWN_MAX)}</span>
-        </div>
-
-        {belowFloor && (
-          <p
-            role="alert"
-            className="mt-3 border-l-2 border-accent bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-relaxed text-ink-muted"
-          >
-            A down payment of at least{" "}
-            <span className="tnum font-mono text-[0.8125rem] text-ink">
-              {formatMoney(quote.minDownCents, { cents: true })}
-            </span>{" "}
-            is required on this car &mdash; 18% of the out-the-door price. It is
-            the strongest predictor there is of a loan that finishes.
-          </p>
-        )}
-
         {/* -------------------------------------------------------- term */}
-        <fieldset className="mt-6">
+        <fieldset>
           <legend className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
             Pay it off over
           </legend>
-          <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className={`mt-2 grid grid-cols-3 gap-2 ${settlingClass}`}>
             {quote.plans
               .filter((p): p is PaymentPlan => p.kind === "installments")
               .map((p) => {
@@ -199,9 +240,110 @@ export function PlanPicker({
           </div>
         </fieldset>
 
+        {/* ---------------------------------------------- the two sliders */}
+        <p className="mt-6 font-serif text-[0.875rem] leading-relaxed text-ink-muted">
+          Drag either one. They are the same dial from opposite ends &mdash;
+          more down is less a month, and the total never changes.
+        </p>
+
+        {/* ------------------------------------------------ down payment */}
+        <div className="mt-4">
+          <div className="flex items-baseline justify-between gap-4">
+            <label
+              htmlFor="down"
+              className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+            >
+              Cash down today
+            </label>
+            <span className="tnum font-display text-2xl font-extrabold tracking-tight">
+              {formatMoney(downCents)}
+            </span>
+          </div>
+          <input
+            id="down"
+            type="range"
+            min={bounds.min}
+            max={bounds.max}
+            step={DOWN_STEP}
+            value={downCents}
+            onChange={(e) => setDownCents(Number(e.target.value))}
+            aria-valuetext={formatMoney(downCents)}
+            className="mt-2"
+          />
+          <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
+            <span>{formatMoney(bounds.min)} minimum</span>
+            <span>{formatMoney(bounds.max)}</span>
+          </div>
+        </div>
+
+        {/* ---------------------------------------------- monthly payment */}
+        <div className="mt-5">
+          <div className="flex items-baseline justify-between gap-4">
+            <label
+              htmlFor="monthly"
+              className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+            >
+              Per month
+            </label>
+            <span
+              className={`tnum font-display text-2xl font-extrabold tracking-tight text-brass ${settlingClass}`}
+            >
+              {plan
+                ? formatMoney(plan.monthlyPaymentCents, { cents: true })
+                : "—"}
+            </span>
+          </div>
+          <input
+            id="monthly"
+            type="range"
+            min={monthlyTravel.min}
+            max={monthlyTravel.max}
+            step={MONTHLY_STEP}
+            value={monthlyThumb}
+            onChange={(e) => setMonthly(Number(e.target.value))}
+            aria-valuetext={
+              plan
+                ? `${formatMoney(plan.monthlyPaymentCents, { cents: true })} per month`
+                : undefined
+            }
+            className="mt-2"
+          />
+          <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
+            <span>{formatMoney(monthlyRange.min, { cents: true })}/mo</span>
+            <span>{formatMoney(monthlyRange.max, { cents: true })}/mo</span>
+          </div>
+        </div>
+
+        <p className="mt-3 font-serif text-[0.8125rem] leading-relaxed text-ink-muted">
+          The{" "}
+          <span className="tnum font-mono text-[0.75rem] text-ink">
+            {formatMoney(bounds.min)}
+          </span>{" "}
+          minimum is 18% of the out-the-door price &mdash;{" "}
+          <span className="tnum font-mono text-[0.75rem]">
+            {formatMoney(quote.minDownCents, { cents: true })}
+          </span>
+          , rounded up to the nearest {formatMoney(DOWN_STEP)}. A down payment
+          that size is the strongest predictor there is of a loan that
+          finishes, which is why it is the floor rather than a suggestion.
+        </p>
+
+        {belowFloor && (
+          <p
+            role="alert"
+            className="mt-3 border-l-2 border-accent bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-relaxed text-ink-muted"
+          >
+            A down payment of at least{" "}
+            <span className="tnum font-mono text-[0.8125rem] text-ink">
+              {formatMoney(quote.minDownCents, { cents: true })}
+            </span>{" "}
+            is required on this car.
+          </p>
+        )}
+
         {/* ----------------------------------------------------- summary */}
         {plan && (
-          <div className="mt-6 border-t border-rule pt-4">
+          <div className={`mt-6 border-t border-rule pt-4 ${settlingClass}`}>
             <dl className="tnum grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[0.8125rem]">
               <Row label="Out-the-door price" value={formatMoney(quote.outTheDoorCents, { cents: true })} />
               <Row label="Cash down" value={`− ${formatMoney(plan.downCents, { cents: true })}`} />
@@ -366,8 +508,4 @@ function Row({
       </dd>
     </>
   );
-}
-
-function clampDown(cents: number): number {
-  return Math.min(DOWN_MAX, Math.max(DOWN_MIN, Math.round(cents / DOWN_STEP) * DOWN_STEP));
 }

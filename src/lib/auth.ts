@@ -26,7 +26,6 @@ const PROFILE_COLUMNS = `
   employment_type, employer_name, months_at_employer, gross_monthly_income_cents,
   income_verification, identity_verification, residence_verification,
   stated_down_cents, stated_monthly_cents,
-  membership_status, stripe_customer_id, stripe_subscription_id,
   created_at, updated_at
 `;
 
@@ -52,9 +51,10 @@ function toProfile(row: any): MemberProfile {
     residenceVerification: row.residence_verification,
     statedDownCents: row.stated_down_cents ?? undefined,
     statedMonthlyCents: row.stated_monthly_cents ?? undefined,
-    membershipStatus: row.membership_status,
-    stripeCustomerId: row.stripe_customer_id ?? undefined,
-    stripeSubscriptionId: row.stripe_subscription_id ?? undefined,
+    // membership_status, stripe_customer_id and stripe_subscription_id are
+    // still columns on this table and are deliberately NOT read. They belonged
+    // to the retired auction-access subscription; the rows that carry them are
+    // history, and nothing in the product may branch on them again.
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

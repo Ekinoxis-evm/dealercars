@@ -1,4 +1,4 @@
-import type { AmortizedLoan, Money, PaymentPlan } from "@/lib/types";
+import type { PaymentPlan } from "@/lib/types";
 import { formatBps, formatMoney } from "@/lib/finance";
 
 /**
@@ -15,24 +15,21 @@ import { formatBps, formatMoney } from "@/lib/finance";
  * "$4,000 down" and "$245/month" are still trigger terms, and the APR that has
  * to be stated is 0.00%. The disclosure gets better, not optional.
  *
- * Accepts either a plan (the interest-free product) or an amortized loan (the
- * auction path, which still carries a rate).
+ * Note what is NOT a trigger term: an out-the-door cash price, and the APR on
+ * its own. That is deliberate headroom, and the inventory cards rely on it —
+ * they state a price and "0% APR" and nothing that triggers this block. Put a
+ * monthly figure on a card and this component has to ride along with it.
  */
-type Props = { className?: string } & (
-  | { plan: PaymentPlan; loan?: never; downCents?: never }
-  | { loan: AmortizedLoan; downCents: Money; plan?: never }
-);
-
-export function RegZDisclosure(props: Props) {
-  const className = props.className ?? "";
-
+export function RegZDisclosure({
+  plan,
+  className = "",
+}: {
+  plan: PaymentPlan;
+  className?: string;
+}) {
   // A cash price states no down payment and no periodic payment, so it trips
   // no trigger term and Reg Z advertising disclosure does not attach.
-  if (props.plan && props.plan.kind === "cash") return null;
-
-  const terms = props.plan
-    ? planTerms(props.plan)
-    : loanTerms(props.downCents, props.loan);
+  if (plan.kind === "cash") return null;
 
   return (
     <p
@@ -41,9 +38,9 @@ export function RegZDisclosure(props: Props) {
       <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
         Credit terms&nbsp;·&nbsp;
       </span>
-      {terms} Financing provided by a licensed partner dealer, not by
-      DealerCars. Subject to verification of income, residence, and down
-      payment.
+      {planTerms(plan)} Credit extended by DealerCars, a licensed motor vehicle
+      dealer and retail installment seller. Subject to verification of income,
+      residence, and down payment.
     </p>
   );
 }
@@ -69,15 +66,5 @@ function planTerms(plan: PaymentPlan): string {
     `${formatMoney(plan.downCents)} cash down; annual percentage rate ` +
     `${formatBps(plan.aprBps)}; ${repayment}; total of payments ` +
     `${formatMoney(plan.totalOfPaymentsCents, { cents: true })}; ${financeCharge}.`
-  );
-}
-
-/** The auction path, which still carries a rate. */
-function loanTerms(downCents: Money, loan: AmortizedLoan): string {
-  return (
-    `${formatMoney(downCents)} cash down; annual percentage rate ` +
-    `${formatBps(loan.aprBps)}; ${loan.termMonths} monthly payments of ` +
-    `${formatMoney(loan.monthlyPaymentCents, { cents: true })}; total of ` +
-    `payments ${formatMoney(loan.totalOfPaymentsCents, { cents: true })}.`
   );
 }

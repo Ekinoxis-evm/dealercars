@@ -11,7 +11,7 @@ import {
   quoteListing,
   requiresTilaDisclosure,
   salesTaxOn,
-  solveBidCeiling,
+  solveAffordability,
 } from "./finance";
 import { AVAILABLE_NOW, deliverableListings, findListing } from "./available-now";
 import {
@@ -143,11 +143,15 @@ describe("dealCostsFor", () => {
     expect(dealCostsFor("CA")).toBe(TX_DEAL_COSTS);
   });
 
-  it("changes the bid ceiling materially between states", () => {
-    const tx = solveBidCeiling(ENVELOPE, TERMS, TX_DEAL_COSTS);
-    const fl = solveBidCeiling(ENVELOPE, TERMS, FL_ORANGE_DEAL_COSTS);
-    // Florida's $699 doc fee and $400 title eat straight into the ceiling.
-    expect(fl.maxAuctionBidCents).not.toBe(tx.maxAuctionBidCents);
+  it("changes what the same budget can buy between states", () => {
+    const tx = solveAffordability(ENVELOPE, TERMS, TX_DEAL_COSTS);
+    const fl = solveAffordability(ENVELOPE, TERMS, FL_ORANGE_DEAL_COSTS);
+    // Florida's $699 doc fee and $400 title come out of the car, so the same
+    // envelope reaches a lower sticker price there. The out-the-door ceiling
+    // is identical — it is the budget itself — which is exactly why the
+    // filter compares cars on out-the-door and not on sticker.
+    expect(fl.maxRetailPriceCents).toBeLessThan(tx.maxRetailPriceCents);
+    expect(fl.maxOutTheDoorCents).toBe(tx.maxOutTheDoorCents);
   });
 });
 

@@ -11,14 +11,11 @@ import { supabaseAdmin } from "@/lib/supabase";
  * the tab, the redirect can be forged, and the network can drop. Money state
  * moves here, from a signature-verified event, or it does not move.
  *
- * One endpoint receives both:
- *   - PLATFORM events (the membership subscription), where `event.account` is
- *     absent, and
- *   - CONNECTED events (deposits, down payments, installments), where
- *     `event.account` names the dealer the money settled to.
- *
+ * Every event here is a CONNECTED-account event — deposits, down payments,
+ * installments — where `event.account` names the dealer the money settled to.
  * The account is recorded rather than ignored, because "which dealer holds
- * this money" is the question the whole licensing posture rests on.
+ * this money" is the question the whole licensing posture rests on, and an
+ * event arriving with no account is a payment we did not intend to take.
  */
 
 /** Raw body required: the signature is computed over the exact bytes. */
@@ -68,36 +65,6 @@ async function handle(event: Stripe.Event): Promise<void> {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const kind = session.metadata?.kind;
-
-      if (kind === "membership") {
-        const profileId = session.metadata?.profile_id ?? session.client_reference_id;
-        if (!profileId) break;
-        await db
-          .from("profiles")
-          .update({
-            membership_status: "active",
-            stripe_customer_id:
-              typeof session.customer === "string" ? session.customer : undefined,
-            stripe_subscription_id:
-              typeof session.subscription === "string"
-                ? session.subscription
-                : undefined,
-          })
-          .eq("id", profileId);
-
-        await db.from("payments").insert({
-          profile_id: profileId,
-          kind: "membership",
-          amount_cents: session.amount_total ?? 0,
-          status: "succeeded",
-          // Explicitly null: the subscription is platform revenue, and the
-          // check constraint enforces that this stays null.
-          connected_account_id: null,
-          stripe_checkout_session_id: session.id,
-          refundable_until_signature: false,
-        });
-        break;
-      }
 
       // Dealer-side money. The row was created when checkout started; this
       // marks it paid and records the account it actually settled to.
@@ -160,28 +127,22 @@ async function handle(event: Stripe.Event): Promise<void> {
       break;
     }
 
-    case "customer.subscription.updated":
-    case "customer.subscription.deleted": {
-      const subscription = event.data.object as Stripe.Subscription;
-      const profileId = subscription.metadata?.profile_id;
-      if (!profileId) break;
-
-      // Map Stripe's status vocabulary onto ours. Anything we do not
-      // recognise is treated as "not entitled" rather than silently active.
-      const status =
-        subscription.status === "active"
-          ? "active"
-          : subscription.status === "trialing"
-            ? "trialing"
-            : subscription.status === "past_due" ||
-                subscription.status === "unpaid"
-              ? "past_due"
-              : "canceled";
-
+    case "account.updated": {
+      // The dealer moved through (or fell out of) Stripe onboarding.
+      //
+      // This is the event that opens and closes the payment gate. Stripe is
+      // the authority on whether an account may take charges, so we mirror its
+      // verdict rather than inferring one — and because we mirror it in both
+      // directions, an account Stripe later restricts stops being able to take
+      // a member's money without anyone having to notice.
+      const acct = event.data.object as Stripe.Account;
       await db
-        .from("profiles")
-        .update({ membership_status: status })
-        .eq("id", profileId);
+        .from("dealers")
+        .update({
+          stripe_charges_enabled: acct.charges_enabled ?? false,
+          stripe_payouts_enabled: acct.payouts_enabled ?? false,
+        })
+        .eq("stripe_account_id", acct.id);
       break;
     }
 

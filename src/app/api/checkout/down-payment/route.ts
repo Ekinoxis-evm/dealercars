@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireMember, Unauthorized, unauthorizedResponse } from "@/lib/auth";
-import { findListing } from "@/lib/available-now";
-import { canAcceptPayments, dealerBlockReason, findDealer } from "@/lib/dealers";
+import { canAcceptPayments, dealerBlockReason } from "@/lib/dealers";
+import { loadDealer } from "@/lib/dealer-store";
+import { loadListing } from "@/lib/listing-store";
 import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { passesPlanUnderwriting, quoteListing } from "@/lib/finance";
 import { createDownPaymentCheckout } from "@/lib/stripe";
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const listing = findListing(listingId);
+  const listing = await loadListing(listingId);
   if (!listing) {
     return NextResponse.json({ error: "No such vehicle" }, { status: 404 });
   }
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const dealer = findDealer(listing.dealerId);
+  const dealer = await loadDealer(listing.dealerId);
   if (!dealer) {
     return NextResponse.json({ error: "No dealer for this vehicle" }, { status: 500 });
   }

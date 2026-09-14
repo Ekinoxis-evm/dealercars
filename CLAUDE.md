@@ -1,16 +1,39 @@
 # DealerCars — Project Conventions
 
-Buy-to-order financing for Buy-Here-Pay-Here (BHPH) used-car dealers in the US. Next.js 15
-App Router / React 19 / TypeScript / Tailwind v4, deployed on Vercel.
+An interest-free Buy-Here-Pay-Here used-car dealership in the US. We buy the cars, hold the
+title, and carry the paper. Next.js 15 App Router / React 19 / TypeScript / Tailwind v4,
+deployed on Vercel.
+
+**Decided 2026-09-14: there is no auction product.** The Monday drop, the bid ceiling, the
+lot scoring and the auction-access membership are gone — deleted, not disabled. What remains
+is a marketplace: we list the cars we own, each with its own page, and a member buys one. A
+wholesale lane is a channel we buy through, never something a member participates in. Do not
+reintroduce a bid, a drop, a proposal, or a subscription.
 
 Full product spec and architecture: see the DealerCars Blueprint artifact.
 
 ## What this is, structurally
 
-We are **software, not a lender**. The partner dealer is the seller and the creditor, holds the
-paper, and carries the credit risk. This is not a detail — it is the reason the company does not
-need a lending license, and almost every architectural decision descends from it. Do not write
-code that puts DealerCars in the position of creditor, servicer-of-record, or holder of funds.
+**Decided 2026-08-29, reversing the previous "we are software, not a lender" rule.** DealerCars
+**is the dealer**. We hold the auction access, we buy the cars, we take title, and we are the
+seller and the creditor on every retail installment contract. We hold the paper and we carry the
+credit risk.
+
+That reversal is load-bearing, and the obligations it creates are not optional:
+
+- **We need the licences.** In Florida that is a used motor vehicle dealer licence (Ch. 320.27,
+  F.S.) *and* a retail installment seller licence (Ch. 520, F.S.). Both must be in hand before a
+  single contract is written. The `dealers` table gates on `license_verified_at` for exactly this
+  reason, and that gate applies to our own entity like any other.
+- **We are the merchant of record.** Selling our own cars, taking payment for them is ordinary
+  merchant activity, not money transmission — the custody rule below still holds, but for a
+  different reason than it used to.
+- **Every consumer-facing disclosure names us as the creditor.** `RegZDisclosure` and
+  `SiteFooter` say so. A disclosure that credits a third-party dealer is now a false statement in
+  an advertisement, which is worse than no statement at all.
+
+What has *not* changed: we still do not author the RISC, we still do not recompute a signed TILA
+box, and the member's money still settles to a connected account rather than a platform balance.
 
 ## Hard rules
 
@@ -20,12 +43,19 @@ Every monetary value is an integer count of cents. Never a float, never a string
 Format only at the render boundary via `formatMoney()`. A rounding error in a retail installment
 contract is a Reg Z problem, not a display bug.
 
-### Never take custody of funds
+### Money settles to the dealer's connected account
 
-Stripe Connect with the **dealer as the connected account**. Down payments and installments
-settle to the dealer. Funds never rest with us — that is what keeps us out of money transmitter
-licensing. Do not "simplify" a payout path in a way that routes money through a DealerCars
-balance.
+Stripe Connect with the **dealer as the connected account**. Every charge — the visit deposit,
+the down payment, every installment — is a direct charge there. Nothing settles to the platform
+today: the membership subscription was the only thing that ever did, and it went with the
+auction.
+
+Since we are now the dealer, the connected account is our own entity — so "never take custody" no
+longer describes a money-transmitter risk, it describes a structural one. Keep the split anyway.
+Car money and software money are different businesses with different licensing, different
+chargeback exposure and different books, and the day a second dealer is onboarded, a payout path
+that has been quietly routing through a platform balance is a rewrite of the money path rather
+than a configuration change. Do not "simplify" it.
 
 ### The TILA disclosure is immutable once signed
 
@@ -40,8 +70,13 @@ Stating a down payment amount or a monthly payment figure in an advertisement le
 disclosing the APR, the terms of repayment, and the total of payments **in the same creative**.
 
 Every surface that shows "$4,000 down" or "$245/month" must carry `<RegZDisclosure />`. This
-includes the landing page, the calculator, the plan picker, every proposal card, and every Meta ad
+includes the landing page hero, the budget calculator, the plan picker, and every Meta ad
 creative. It is part of the component contract, not fine print to be added before launch.
+
+The inventory cards (`CarCard`) deliberately show an out-the-door price and "0% APR plans" and
+**no monthly figure**, which is why they carry no disclosure: neither a cash price nor an APR
+stated on its own is a trigger term under 1026.24(d)(1). Put "from $245/mo" on a card and the
+disclosure has to ride along on every card in the grid. `CarCardData` says so at the type.
 
 ### 0% APR is still Regulation Z credit
 
@@ -95,10 +130,22 @@ and neither is optional:
   `src/lib/auth.ts` is the single chokepoint: verify the access token, resolve the DID, look up the
   profile. A profile id, deal id, or listing id arriving in a request body is attacker input.
 
-The known cost, measured: Privy adds ~720 kB of first-load JS to any page that mounts the provider
-(111 kB → 831 kB), because the SDK pulls the whole wallet stack — `@reown/appkit`, `viem`, `keccak`,
-`x402` — to do email login. On a BHPH buyer's phone on metered data that is a real tax. If it starts
-costing conversions, the fallback is Supabase Auth, which is what this file used to mandate.
+The known cost, and how it is contained: Privy adds ~726 kB of first-load JS to any page that
+statically imports it, because the SDK pulls the whole wallet stack — `@reown/appkit`, `viem`,
+`keccak`, `x402` — to do email login. On a BHPH buyer's phone on metered data that is a real tax.
+
+**Every component that imports `@privy-io/react-auth` must be re-exported through
+`src/components/privy-deferred.tsx`, and pages must import it from there.** That module wraps each
+one in `next/dynamic`, which moved `/cars/[id]` and `/account` from 832 kB to 106 kB of first-load
+JS. SSR stays ON inside those boundaries, so the plan figures and their Reg Z disclosure are still
+in the server HTML — `ssr: false` would take the disclosure out of the HTML along with the trigger
+terms it belongs to, so do not add it. A new Privy-dependent component that a page imports directly
+silently puts 726 kB back on the critical path.
+
+Server-side, set `PRIVY_VERIFICATION_KEY` so `verifyAuthToken` verifies the JWT locally. Without it
+the SDK fetches the signing key from Privy on every authenticated request, which puts a third-party
+round-trip on the critical path of every signed-in page load and makes a Privy outage look like
+ours. The code falls back gracefully when the key is unset.
 
 ### RLS is deny-all, on purpose
 
@@ -109,6 +156,35 @@ this as `rls_enabled_no_policy` — that finding is expected and must not be "fi
 
 The corollary: the service role bypasses RLS, so **every route must scope its own queries** by the
 profile id from `requireMember()`. Nothing else does it for you.
+
+## Inventory lives in the database, not in TypeScript
+
+`available-now.ts` and `dealers.ts` are **seeds and no-database fallbacks**. Everything
+user-facing reads `listing-store.ts` / `dealer-store.ts`, because a listing's status decides
+whether checkout is open on it and its price decides what a member is charged — both change on an
+ordinary weekday, and neither should require a deploy. A car marked sold in a compiled constant
+stays purchasable until someone edits a file.
+
+Photos are `listing_photos` rows plus files in a **public** Supabase Storage bucket. Public read is
+deliberate: car photographs are the advertisement and have to be CDN-cacheable and crawlable, which
+signed URLs defeat. Writes still run through an admin route. `photoUrl()` in `listing-store.ts` is
+the only place that knows the bucket layout.
+
+`/cars/[id]` is `revalidate = 60`, not statically generated — the set of cars is no longer known at
+build time. Sixty seconds of staleness on a marketing page is acceptable **because it is not the
+enforcement boundary**: whether money may actually be taken is re-decided server-side on every
+request in the down-payment route.
+
+### Admin access is a row, not a password
+
+`requireAdmin()` in `admin-auth.ts` checks the `admins` table by verified Privy DID. This replaced
+`DEALER_ADMIN_TOKEN`, which could not be revoked per person, could not attribute a price change to
+anyone, and had to be pasted into a browser console to be used at all. There is deliberately no
+route that grants admin — insert the first row by hand (see migration 0003).
+
+Admin API responses carry `acquisitionTargetCents`, which is what we intend to pay a private
+seller. That figure reaching a member, or the seller, costs real money on the next car. Admin pages
+are `robots: noindex`, and no admin field may be surfaced on a member route.
 
 ## Repository hygiene
 
@@ -123,28 +199,38 @@ Never commit secrets. `.env` and `.env*.local` are gitignored.
 ```
 src/lib/types.ts        domain contract — types, defaults, UNDERWRITING thresholds. Change carefully.
 src/lib/finance.ts      amortization, the budget solver, plans, TILA computation. Pure, tested.
-src/lib/scoring.ts      lot scoring, hard rejects, drop construction.
 src/lib/deal-costs.ts   per-state tax/doc/title profiles. TX and FL. Unmapped state = cannot quote.
-src/lib/mock-lots.ts    stands in for Manheim Listings Search until credentials land.
-src/lib/available-now.ts cars on the lot — the non-auction path. Stands in for the listings table.
-src/lib/dealers.ts      partner dealers and the gates that stop an unonboarded one taking money.
+src/lib/available-now.ts seed inventory + the no-database fallback. Not the read path.
+src/lib/dealers.ts      dealer seed + the gates that stop an unonboarded dealer taking money.
+src/lib/dealer-store.ts DB-backed dealer read. The payment gate reads THIS, not the seed.
+src/lib/listing-store.ts DB-backed inventory + photo URLs. The seed is a fallback only.
+src/lib/listing-input.ts validation for admin-written inventory. Where cents stay integers.
+src/lib/inventory-card.ts the member-facing card shape. Prices ONCE, server-side, and is the
+                        boundary that keeps acquisitionTargetCents off member surfaces.
+src/lib/admin-auth.ts   requireAdmin() — a row in `admins`, keyed by Privy DID.
 src/lib/auth.ts         requireMember() — the ONLY sanctioned source of a caller's identity.
-src/lib/stripe.ts       platform vs connected-account money. Read the header before editing.
+src/lib/stripe.ts       connected-account money, all of it. Read the header before editing.
 src/lib/visits.ts       appointment slots, in the dealer's timezone.
 src/app/api/            route handlers. Every figure is recomputed server-side.
 src/app/                App Router surfaces.
 src/components/         UI. RegZDisclosure is mandatory wherever a trigger term appears.
+src/components/CarCard.tsx  one car in the grid. Price and APR only — no monthly figure.
+src/components/InventoryGrid.tsx  client-side sort and budget filter. Reorders, never prices.
+src/components/privy-deferred.tsx  lazy boundary for every Privy component. Import from HERE, not direct.
 supabase/migrations/    schema. The money guardrails are check constraints, not conventions.
 ```
 
-## Two paths, one price
+## One path, one price
 
-**Available now** (`/cars/[id]`) is the main product: a car the dealer already owns, bought with
-$2–4k down and interest-free monthly payments, or paid in full. No subscription needed.
+`/cars` is the lot and `/cars/[id]` is one car. That is the whole product: a car we already
+own, bought with $2–4k down and interest-free monthly payments, or paid in full. Nothing is
+gated and there is no subscription. Every dollar attached to a car settles to the dealer's
+connected account as a direct charge.
 
-**The Monday drop** (`/drop`) is the auction path, gated by the membership subscription — that
-subscription is the one payment that settles to the *platform*, because it buys software. Every
-dollar attached to a car settles to the *dealer's* connected account as a direct charge.
+The `/cars` index shows deliverable cars in the main grid and `sourced`/`acquired` cars under a
+separate "On the way" heading, plainly labelled and with no purchase affordance — the same thing
+`/cars/[id]` already says about those rows. `/drop` is a permanent redirect to `/cars` in
+`next.config.ts`; the path was public and is in at least one ad creative.
 
 A car may only be paid for once `status` is `available` or `reserved`. A `sourced` car is one we
 found advertised and the dealer has not bought; collecting against it would be taking money for a
@@ -176,7 +262,8 @@ rests on:
   solver, usury caps, and GPS device legality. `deal-costs.ts` now carries TX and FL (Orange
   County). The live inventory is in Orlando, so **FL is the de facto operating state** and needs
   the licensing question answered: Florida retail installment sellers are licensed under Ch. 520,
-  F.S., and the partner dealer must hold that licence before a single contract is written.
+  F.S., and we must hold that licence — along with the Ch. 320.27 dealer licence — before a single
+  contract is written. This is now the critical path item, not a partner's problem.
 - **Florida figures need confirming.** The $699 doc fee, $400 title/registration and the Orange
   County 0.5% surtax (capped at a $5,000 base) are researched starting points, not verified
   numbers. Confirm against the current state schedule and the dealer's own fee sheet.
@@ -186,5 +273,10 @@ rests on:
   normally earns most of their return on the finance charge, and at 0% the entire return is the
   front-end gross (`targetGrossCents`, currently $2,795). Either the gross carries it or the term
   shortens so capital turns faster. That is a business decision, not a code change.
-- **Product name** — DealerCars describes the supply side; the member is the one paying the
-  subscription.
+- **Product name** — DealerCars describes the supply side. Now that the subscription is gone
+  and the member is simply buying a car from us, the name has even less to do with what they
+  experience.
+- **Revenue is now entirely the front-end gross.** Removing the membership removed the only
+  recurring revenue line. `targetGrossCents` on each car is the whole business; there is no
+  software revenue to smooth a slow month. That is a business decision to make consciously
+  rather than a gap to quietly fill by reintroducing a fee on the credit.

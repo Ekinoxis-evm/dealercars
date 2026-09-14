@@ -21,7 +21,14 @@ export function privyClient(): PrivyClient {
 export async function verifiedDid(token: string | null): Promise<string | null> {
   if (!token) return null;
   try {
-    const claims = await privyClient().verifyAuthToken(token);
+    // Passing the verification key verifies the signature locally. Omitting it
+    // makes the SDK fetch the key from Privy on every call — correct, but it
+    // adds a network hop to every authenticated request and couples our login
+    // path to Privy's uptime. Set PRIVY_VERIFICATION_KEY to avoid that.
+    const claims = await privyClient().verifyAuthToken(
+      token,
+      serverEnv.privyVerificationKey
+    );
     return claims.userId;
   } catch {
     return null;

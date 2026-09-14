@@ -1,22 +1,35 @@
 "use client";
 
-import { useId, useState } from "react";
-import { formatMoney, installmentPlan, solveBidCeiling } from "@/lib/finance";
+import { useId, useMemo, useState } from "react";
+import Link from "next/link";
+import { formatMoney, installmentPlan, solveAffordability } from "@/lib/finance";
 import { dealCostsFor, SUPPORTED_STATES } from "@/lib/deal-costs";
 import { ZERO_APR_BPS } from "@/lib/types";
+import type { CarCardData } from "@/lib/inventory-card";
+import { carTitle } from "@/lib/inventory-card";
 import { RegZDisclosure } from "@/components/RegZDisclosure";
 
 /**
- * The budget envelope, solved backwards, live.
+ * Shop by what you can actually pay.
  *
- * Two inputs the member actually controls — cash down and the monthly ceiling —
- * and the two numbers that fall out: the max vehicle price and, the one the
- * auction search runs on, the maximum auction bid.
+ * Two inputs the member controls — cash down and the monthly ceiling — solved
+ * backwards into the out-the-door price their money reaches, and then pointed
+ * straight at the cars on the lot that fit inside it. The answer to "what can
+ * I afford" should be a car, not a number.
+ *
+ * The match runs on the OUT-THE-DOOR price, never the sticker. Tax, doc fee
+ * and title are several hundred dollars in Florida; filtering on sticker would
+ * show a member cars their money does not actually reach.
+ *
+ * Every price it compares against was computed on the server (`toCardData`).
+ * The arithmetic here is only the budget inversion, which is the member's own
+ * numbers rather than any car's — so there is no second source of truth for
+ * what a car costs.
  *
  * Interest-free. With no finance charge the inverse amortization collapses to
- * monthly × term, which is why a given budget reaches a materially higher bid
- * ceiling here than the same budget did at a rate: none of the payment is
- * being spent on interest, so all of it buys car.
+ * monthly × term, which is why a given budget reaches a materially higher
+ * ceiling than the same budget did at a rate: none of the payment is spent on
+ * interest, so all of it buys car.
  *
  * The state selector is not decoration. Tax, doc fee and title differ enough
  * between states to move the ceiling by hundreds of dollars, and the operating
@@ -25,7 +38,7 @@ import { RegZDisclosure } from "@/components/RegZDisclosure";
  */
 const TERM_MONTHS = 36;
 
-export function BudgetCalculator() {
+export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
   const [downDollars, setDownDollars] = useState(2500);
   const [monthlyDollars, setMonthlyDollars] = useState(400);
   const [state, setState] = useState("FL");
@@ -38,14 +51,25 @@ export function BudgetCalculator() {
   };
   const costs = dealCostsFor(state);
   const terms = { aprBps: ZERO_APR_BPS, termMonths: TERM_MONTHS };
-  const ceiling = solveBidCeiling(envelope, terms, costs);
+  const budget = solveAffordability(envelope, terms, costs);
 
-  // The plan the member would actually be on: out-the-door is the amount
-  // financed plus their down payment, by definition of the ceiling.
+  // The plan the member would be on if they spent the whole envelope.
   const plan = installmentPlan(
-    ceiling.maxAmountFinancedCents + envelope.downCents,
+    budget.maxOutTheDoorCents,
     envelope.downCents,
     TERM_MONTHS
+  );
+
+  const fits = useMemo(
+    () =>
+      cars
+        .filter(
+          (c) =>
+            c.outTheDoorCents !== null &&
+            c.outTheDoorCents <= budget.maxOutTheDoorCents
+        )
+        .sort((a, b) => (b.outTheDoorCents ?? 0) - (a.outTheDoorCents ?? 0)),
+    [cars, budget.maxOutTheDoorCents]
   );
 
   return (
@@ -143,32 +167,86 @@ export function BudgetCalculator() {
 
           <p className="font-serif text-[0.875rem] italic leading-relaxed text-ink-muted">
             A ceiling, not a wish. We solve backwards from what you can keep
-            paying — tax, title, doc fee, transport, and recon already counted.
-            None of it goes to interest.
+            paying — tax, title, registration and doc fee already counted. None
+            of it goes to interest.
           </p>
         </div>
 
         {/* Outputs — the payoff of the page */}
         <div className="tnum flex flex-col justify-center gap-6 px-4 py-6 sm:px-6">
           <div>
-            <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-              Max vehicle price
-            </p>
-            <p className="font-display text-4xl font-extrabold leading-none tracking-tight text-ink">
-              {formatMoney(ceiling.maxRetailPriceCents)}
-            </p>
-          </div>
-          <div className="border-t border-rule pt-5">
             <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-accent">
-              Your auction bid ceiling
+              You can shop up to
             </p>
-            <p className="font-display text-6xl font-extrabold leading-none tracking-tight text-brass">
-              {formatMoney(ceiling.maxAuctionBidCents)}
+            <p className="font-display text-5xl font-extrabold leading-none tracking-tight text-brass">
+              {formatMoney(budget.maxOutTheDoorCents)}
             </p>
             <p className="mt-2 font-serif text-[0.875rem] leading-relaxed text-ink-muted">
-              This is the number the search runs on. Every lot in your Monday
-              drop clears at or under it.
+              Out the door, in {state} &mdash; the whole price, not a sticker
+              you add fees to later. That is a{" "}
+              {formatMoney(budget.maxRetailPriceCents)} car once tax, title and
+              the doc fee come out of it.
             </p>
+          </div>
+
+          <div className="border-t border-rule pt-5">
+            {cars.length === 0 ? (
+              <p className="font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
+                <Link
+                  href="/cars"
+                  className="underline underline-offset-4 hover:text-accent"
+                >
+                  See what is on the lot →
+                </Link>
+              </p>
+            ) : fits.length === 0 ? (
+              <p className="font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
+                Nothing on the lot fits that budget today. The lot turns over
+                every week &mdash;{" "}
+                <Link
+                  href="/cars"
+                  className="underline underline-offset-4 hover:text-accent"
+                >
+                  see everything we have
+                </Link>
+                .
+              </p>
+            ) : (
+              <>
+                <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
+                  {fits.length} {fits.length === 1 ? "car" : "cars"} on the lot
+                  fit
+                </p>
+                <ul className="mt-2 divide-y divide-rule border-y border-rule">
+                  {fits.slice(0, 4).map((car) => (
+                    <li key={car.id}>
+                      <Link
+                        href={`/cars/${car.id}`}
+                        className="flex items-baseline justify-between gap-4 py-2 hover:text-accent"
+                      >
+                        <span className="font-serif text-[0.9375rem] leading-snug">
+                          {carTitle(car)}
+                          <span className="ml-2 font-mono text-[0.6875rem] text-ink-faint">
+                            {car.mileage.toLocaleString("en-US")} mi
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-mono text-[0.8125rem] font-semibold">
+                          {formatMoney(car.outTheDoorCents ?? 0)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3">
+                  <Link
+                    href="/cars"
+                    className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] underline underline-offset-4 hover:text-accent"
+                  >
+                    See the whole lot →
+                  </Link>
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

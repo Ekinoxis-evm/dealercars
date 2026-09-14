@@ -37,6 +37,21 @@ export const serverEnv = {
   get privyAppSecret() {
     return serverOnly("PRIVY_APP_SECRET");
   },
+  /**
+   * Privy's public verification key. Optional, and worth setting.
+   *
+   * Without it `verifyAuthToken` calls Privy over the network to fetch the key
+   * on every authenticated request, which puts a third-party round-trip on the
+   * critical path of every signed-in page load and makes a Privy outage look
+   * like our outage. With it, the JWT is verified locally.
+   *
+   * Dashboard → App settings → Verification key. Not a secret (it is a public
+   * key) but kept server-side because nothing in the browser needs it.
+   */
+  get privyVerificationKey(): string | undefined {
+    if (typeof window !== "undefined") return undefined;
+    return process.env.PRIVY_VERIFICATION_KEY || undefined;
+  },
   get supabaseUrl() {
     return required("NEXT_PUBLIC_SUPABASE_URL");
   },
@@ -49,10 +64,6 @@ export const serverEnv = {
   },
   get stripeWebhookSecret() {
     return serverOnly("STRIPE_WEBHOOK_SECRET");
-  },
-  /** Recurring price for the membership, on the PLATFORM account. */
-  get stripeMembershipPriceId() {
-    return serverOnly("STRIPE_MEMBERSHIP_PRICE_ID");
   },
   get siteUrl() {
     return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";

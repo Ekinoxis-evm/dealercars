@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findListing } from "@/lib/available-now";
+import { loadListing } from "@/lib/listing-store";
 import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { quoteListing } from "@/lib/finance";
 import { minDownFor } from "@/lib/finance";
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "listingId is required" }, { status: 400 });
   }
 
-  const listing = findListing(listingId);
+  const listing = await loadListing(listingId);
   if (!listing) {
     return NextResponse.json({ error: "No such vehicle" }, { status: 404 });
   }

@@ -35,7 +35,7 @@ export function WaitlistForm() {
         </p>
         <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
           We&rsquo;ll email <span className="font-mono text-[0.875rem] text-ink">{email.trim()}</span>{" "}
-          when your market opens. One email per Monday drop, nothing else.
+          when a car that fits lands on the lot. Nothing else, ever.
         </p>
       </div>
     );

@@ -6,17 +6,18 @@ import type { Money, PaymentPlan, RetailListing } from "./types";
 /**
  * Stripe, arranged so that the money rule is structural rather than advisory.
  *
- * There are exactly two destinations in this file and they are never mixed:
+ * Every charge in this file is a DIRECT charge on the DEALER CONNECTED
+ * ACCOUNT: the visit deposit, the down payment, and every installment. The
+ * funds settle to the dealer and never rest in a DealerCars balance. That is
+ * why each function below takes a `dealerAccountId` it cannot default.
  *
- *   PLATFORM ACCOUNT — the membership subscription. That is DealerCars revenue
- *   for software, which we are entitled to bill for.
- *
- *   DEALER CONNECTED ACCOUNT — every dollar attached to a car: the visit
- *   deposit, the down payment, and every installment. These are created as
- *   DIRECT charges on the dealer's account, so the funds settle to the dealer
- *   and never rest in a DealerCars balance. That is the line between being
- *   software and being a money transmitter, and it is why each function below
- *   takes a `dealerAccountId` it cannot default.
+ * There used to be a second destination — the platform account, which billed
+ * the auction-access subscription. That product is gone and nothing settles to
+ * the platform today. Keep the shape anyway: car money and software money are
+ * different businesses with different licensing, different chargeback exposure
+ * and different books, and the day something is sold on the platform again, a
+ * payout path that has been quietly routing everything through one account is
+ * a rewrite rather than a configuration change.
  *
  * If you ever find yourself wanting to route car money through the platform
  * and pay the dealer out later, stop: that is a licensing change, not a
@@ -37,10 +38,11 @@ export function stripe(): Stripe {
 /**
  * Platform fee taken off a dealer-side payment.
  *
- * Zero by design. The business model is the membership subscription; the car
- * transaction is the dealer's. Introducing a fee here is a pricing decision
- * with tax and disclosure consequences, so it is an explicit argument rather
- * than a default someone can turn on by accident.
+ * Zero by design. We are the dealer today, so a platform fee would only move
+ * our own money from one account to another while creating a disclosure
+ * question that does not otherwise exist. Introducing one is a pricing
+ * decision with tax consequences, so it is an explicit argument rather than a
+ * default someone can turn on by accident.
  */
 const NO_APPLICATION_FEE = undefined;
 
@@ -50,46 +52,14 @@ const NO_APPLICATION_FEE = undefined;
  *  it needs no per-dealer Apple Pay domain registration. Omitting
  *  `payment_method_types` is what enables the wallet set; do not add it back. */
 
-// ------------------------------------------------------------- membership
-
-/**
- * Subscription for auction access. PLATFORM account — this one is ours.
- */
-export async function createMembershipCheckout(params: {
-  profileId: string;
-  privyDid: string;
-  email?: string;
-  stripeCustomerId?: string;
-}): Promise<Stripe.Checkout.Session> {
-  return stripe().checkout.sessions.create({
-    mode: "subscription",
-    line_items: [{ price: serverEnv.stripeMembershipPriceId, quantity: 1 }],
-    customer: params.stripeCustomerId,
-    customer_email: params.stripeCustomerId ? undefined : params.email,
-    client_reference_id: params.profileId,
-    subscription_data: {
-      metadata: { profile_id: params.profileId, privy_did: params.privyDid },
-    },
-    metadata: {
-      kind: "membership",
-      profile_id: params.profileId,
-      privy_did: params.privyDid,
-    },
-    success_url: `${serverEnv.siteUrl}/account?membership=active&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${serverEnv.siteUrl}/account?membership=canceled`,
-  });
-}
-
 // ----------------------------------------------------------- dealer money
 
 /**
  * Find or create the member's Customer ON THE DEALER'S ACCOUNT.
  *
  * Customers do not cross account boundaries, and the installment mandate has
- * to live with the party that holds the paper. So the member ends up with a
- * platform customer for the subscription and a separate dealer customer for
- * the car — which is not duplication, it is the two relationships being
- * genuinely different.
+ * to live with the party that holds the paper — so the member's saved payment
+ * method belongs to the account that will be collecting from it.
  */
 async function dealerCustomer(
   dealerAccountId: string,

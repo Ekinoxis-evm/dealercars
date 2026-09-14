@@ -29,16 +29,21 @@ export interface Dealer {
 export const DEALERS: Dealer[] = [
   {
     id: "dealer_orl_001",
-    legalName: "Orlando partner dealer — not yet onboarded",
+    legalName: "DealerCars — Orlando (onboarding incomplete)",
     state: "FL",
     city: "Orlando",
-    // Nothing is set: no licence on file, no connected account. This dealer
-    // cannot sell, cannot hold paper, and cannot take a dollar. That is the
-    // correct state for a partner who has not been onboarded, and the code
-    // below is what makes it enforceable rather than aspirational.
+    // A connected account exists (test mode), but nothing else does: no licence
+    // on file, and Stripe has not enabled charges because onboarding is
+    // unfinished. This dealer cannot sell, cannot hold paper, and cannot take a
+    // dollar — which is the correct state for a partner who has not been
+    // onboarded, and the gates below are what make it enforceable.
+    //
+    // These two booleans are a SEED ONLY. At runtime the payment gate reads the
+    // `dealers` table via `loadDealer()`, which the `account.updated` webhook
+    // keeps in step with Stripe in both directions.
     licenseNumber: undefined,
     licenseVerifiedAt: undefined,
-    stripeAccountId: undefined,
+    stripeAccountId: "acct_1U8rZLEY3nQTGwYo",
     stripeChargesEnabled: false,
     stripePayoutsEnabled: false,
     timeZone: "America/New_York",

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { ProfileForm } from "@/components/ProfileForm";
-import { MembershipCard } from "@/components/MembershipCard";
+import { ProfileForm } from "@/components/privy-deferred";
 
 export const metadata: Metadata = {
   title: "Your account — DealerCars",
   description:
-    "Your details, your budget, and your membership. Underwriting here is capacity, not credit score.",
+    "Your details and your budget. Underwriting here is capacity, not credit score.",
 };
 
 export default function AccountPage() {
@@ -26,7 +25,6 @@ export default function AccountPage() {
 
       <div className="mt-8 flex flex-col gap-8">
         <ProfileForm />
-        <MembershipCard />
       </div>
     </main>
   );

@@ -27,7 +27,7 @@ export interface CreditTerms {
 }
 
 /**
- * Everything between the auction hammer and the member's driveway.
+ * Everything between what we pay for a car and the member's driveway.
  * Defaults live in `DEFAULT_DEAL_COSTS`; per-state values override.
  */
 export interface DealCosts {
@@ -54,12 +54,16 @@ export interface DealCosts {
   targetGrossCents: Money;
 }
 
-/** The output of solving a budget backwards. */
-export interface BidCeiling {
+/**
+ * The output of solving a budget backwards: what a member can actually shop
+ * for. Not a bid ceiling — there is no auction to bid at. `maxOutTheDoorCents`
+ * is the figure the inventory filter runs on, because the out-the-door price
+ * is the number a car is compared against, tax and fees included.
+ */
+export interface Affordability {
   maxAmountFinancedCents: Money;
   maxRetailPriceCents: Money;
-  /** The only number the auction search actually needs. */
-  maxAuctionBidCents: Money;
+  maxOutTheDoorCents: Money;
 }
 
 // ---------------------------------------------------------------- lending
@@ -97,71 +101,8 @@ export interface Installment {
 
 // ---------------------------------------------------------------- inventory
 
-export type AuctionSource = "manheim" | "openlane" | "acv";
-/** Auction light: green = drivable and arbitratable, yellow = announced, red = as-is. */
-export type ConditionLight = "green" | "yellow" | "red";
+/** Title brand, as reported on the certificate of title. */
 export type TitleStatus = "clean" | "branded" | "salvage";
-
-export interface AuctionLot {
-  id: string;
-  source: AuctionSource;
-  externalId: string;
-  vin: string;
-  year: number;
-  make: string;
-  model: string;
-  trim: string;
-  mileage: number;
-  conditionLight: ConditionLight;
-  /** Auction condition grade, 0.0–5.0. */
-  conditionGrade: number;
-  titleStatus: TitleStatus;
-  /** Manheim Market Report valuation. */
-  mmrCents: Money;
-  estimatedReconCents: Money;
-  distanceMiles: number;
-  locationName: string;
-  lane: number;
-  run: number;
-  saleEndsAt: string; // ISO datetime
-  announcements: string[];
-  /**
-   * Expected repair burden for this model at this mileage band, 0..1 where 1 is
-   * most durable. This is underwriting, not trivia: a car that breaks in month
-   * four is a car that stops being paid for.
-   */
-  durability: number;
-}
-
-export interface ScoreBreakdown {
-  mmrHeadroom: number;
-  durability: number;
-  condition: number;
-  reconBurden: number;
-  proximity: number;
-}
-
-export interface ScoredLot {
-  lot: AuctionLot;
-  score: number;
-  breakdown: ScoreBreakdown;
-  rejected: boolean;
-  rejectReason?: string;
-}
-
-// ---------------------------------------------------------------- proposal
-
-/** What a member actually receives: not a listing, a financed offer. */
-export interface Proposal {
-  lot: AuctionLot;
-  retailPriceCents: Money;
-  outTheDoorCents: Money;
-  downCents: Money;
-  loan: AmortizedLoan;
-  /** maxAuctionBid − mmr. Positive means the lot clears with room. */
-  headroomCents: Money;
-  score: number;
-}
 
 // ---------------------------------------------------------------- defaults
 
@@ -222,15 +163,17 @@ export const UNDERWRITING = {
 // ------------------------------------------------------- available-now retail
 
 /**
- * Where a car came from when it is NOT an auction lot.
+ * How we came by a car. Provenance for the lot, not a product line — every one
+ * of these ends up in the same place, retailed by us under the same contract.
  *
  * "street" is a private-party listing (Facebook Marketplace, Craigslist) that
- * the partner dealer acquires and then retails. It matters that this is a
- * two-step: we cannot finance a private-party sale, because the seller is not
- * a licensed creditor and cannot hold the paper. The dealer buys it, titles it,
- * recons it, and sells it — same as an auction car, different sourcing.
+ * we acquire and then retail. It matters that this is a two-step: a
+ * private-party sale cannot be financed, because the seller is not a licensed
+ * creditor and cannot hold the paper. We buy it, title it, recon it, and sell
+ * it. "auction" is the same two-step with a wholesale lane as the source; it
+ * is a purchasing channel of ours and never something a member participates in.
  */
-export type ListingSource = "street" | "dealer-lot" | "trade-in";
+export type ListingSource = "street" | "dealer-lot" | "trade-in" | "auction";
 
 export type ListingStatus =
   /** Seen in the wild; the dealer has not bought it. */
@@ -244,10 +187,30 @@ export type ListingStatus =
   | "sold";
 
 /**
- * A specific car available now, priced forward from a real asking price rather
- * than backward from an MMR valuation. This is the "there are pretty good
- * deals, pay the down payment and drive it" path — no Thursday auction, no
- * bidding, delivery as soon as the paperwork clears.
+ * A photograph of a car on the lot.
+ *
+ * `path` is a location inside the storage bucket, never a URL. The bucket is
+ * public today; storing an absolute URL would bake that decision into every
+ * row and make it expensive to revisit.
+ */
+export interface ListingPhoto {
+  id: string;
+  /** Location inside the storage bucket. */
+  path: string;
+  /** Fully-qualified public URL, built server-side so only one place knows the bucket. */
+  url: string;
+  /** Accessibility requirement — and on a page carrying Reg Z trigger terms, part of the ad. */
+  alt?: string;
+  sortOrder: number;
+  width?: number;
+  height?: number;
+  contentType: string;
+}
+
+/**
+ * One car on the lot. The whole product: a specific vehicle with a specific
+ * price, priced forward from what we actually paid for it. Pay the down
+ * payment, take delivery as soon as the paperwork clears.
  */
 export interface RetailListing {
   id: string;
@@ -273,6 +236,16 @@ export interface RetailListing {
   /** What the dealer should actually pay. Below ask on a private-party car. */
   acquisitionTargetCents: Money;
   estimatedReconCents: Money;
+  /**
+   * The retail price, set deliberately rather than derived.
+   *
+   * Undefined means "derive it" — acquisition target plus buy fee, transport,
+   * recon and target gross — which is the right model while sourcing a car
+   * nobody owns yet. Once the car is on the lot, the price is a decision
+   * somebody makes and answers for, not an output of a formula, so the admin
+   * sets it here and `quoteListing()` honours it.
+   */
+  retailPriceCentsOverride?: Money;
 
   city: string;
   /** Two-letter state. Selects the DealCosts profile — this is not cosmetic. */
@@ -283,15 +256,28 @@ export interface RetailListing {
   ownerCount?: number;
   /** Powertrain warranty the seller is offering, in months. Underwriting signal. */
   sellerWarrantyMonths?: number;
+  /**
+   * Underwriting record: what is unverified, what the seller claimed, what a
+   * later inspection changed. NOT marketing copy — see `description`.
+   */
   notes: string[];
-  /** See AuctionLot.durability. Same 0..1 scale, same meaning. */
+  /** Listing copy for the shop window. Editorial, and shown to the member. */
+  description?: string;
+  bodyStyle?: string;
+  fuelType?: string;
+  /** Ordered gallery. First photo is the card image. */
+  photos: ListingPhoto[];
+  /**
+   * Expected repair burden for this model at this mileage band, 0..1 where 1
+   * is most durable. This is underwriting, not trivia: a car that breaks in
+   * month four is a car that stops being paid for.
+   */
   durability: number;
 }
 
 /**
- * The available-now analogue of `Proposal`. No headroom and no score: there is
- * no auction to be outbid at, so the only questions are what it costs out the
- * door and whether the member clears underwriting on it.
+ * One car costed against one budget. The only two questions are what it costs
+ * out the door and whether the member clears underwriting on it.
  */
 export interface RetailOffer {
   listing: RetailListing;
@@ -303,15 +289,6 @@ export interface RetailOffer {
   minDownCents: Money;
   loan: AmortizedLoan;
 }
-
-// ---------------------------------------------------------------- membership
-
-export type MembershipStatus =
-  | "none"
-  | "trialing"
-  | "active"
-  | "past_due"
-  | "canceled";
 
 // ---------------------------------------------------------------- profile
 
@@ -364,11 +341,6 @@ export interface MemberProfile {
   statedDownCents?: Money;
   statedMonthlyCents?: Money;
 
-  membershipStatus: MembershipStatus;
-  /** Stripe customer on the PLATFORM account — this is our subscription revenue. */
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-
   createdAt: string;
   updatedAt: string;
 }
@@ -418,14 +390,19 @@ export interface Visit {
 /**
  * Every kind of money this system moves, and — critically — where it lands.
  *
- * `membership` is DealerCars revenue and settles to the PLATFORM account: we
- * are selling software, which we are licensed to do. Everything else is the
- * dealer's money and settles to the DEALER's connected account via a direct
- * charge. Funds never rest in a DealerCars balance; that is the line between
- * being software and being a money transmitter.
+ * Every kind below is the dealer's money and settles to the DEALER's connected
+ * account via a direct charge. Funds never rest in a DealerCars balance, and
+ * keeping that true is what makes a second dealer a configuration change
+ * rather than a rewrite of the money path.
+ *
+ * `membership` is historical only. It was the auction-access subscription, the
+ * one charge that settled to the platform; the auction product is gone and
+ * nothing creates one of these any more. The variant survives because paid
+ * rows do, and a type that cannot describe a row in the table is a type that
+ * lies about the database.
  */
 export type PaymentKind =
-  /** Our subscription. Platform account. */
+  /** HISTORICAL. The retired subscription. Platform account. Never created. */
   | "membership"
   /** Refundable hold that reserves a car until the visit. Dealer account. */
   | "visit_deposit"
@@ -448,7 +425,7 @@ export interface PaymentRecord {
   kind: PaymentKind;
   amountCents: Money;
   status: PaymentStatus;
-  /** Null for membership: that one is ours. Set for every dealer-side payment. */
+  /** Set on every payment we take. Null only on the retired membership rows. */
   connectedAccountId?: string;
   stripeCheckoutSessionId?: string;
   stripePaymentIntentId?: string;

@@ -7,16 +7,14 @@
  */
 
 import type {
+  Affordability,
   AmortizedLoan,
-  AuctionLot,
-  BidCeiling,
   Bps,
   BudgetEnvelope,
   CreditTerms,
   DealCosts,
   Installment,
   Money,
-  Proposal,
   PaymentPlan,
   PriceQuote,
   RetailListing,
@@ -110,44 +108,43 @@ export function maxRetailForBudget(
 }
 
 /**
- * Solve the member's budget backwards into a maximum auction bid.
+ * Solve the member's budget backwards into what they can shop for.
  *
  * 1. Monthly ceiling → max amount financed (inverse amortization).
  * 2. Amount financed + down covers the out-the-door number, inverted by
  *    `maxRetailForBudget` (tax applies to the retail price, doc/title are
  *    flat, and a capped county surtax makes that inversion piecewise).
- * 3. Strip out everything between hammer and retail:
- *      maxBid = maxRetail − recon − transport − buyFee − targetGross
  *
- * Clamped at 0 — a budget too small to reach the block yields a $0 ceiling,
- * never a negative one.
+ * The out-the-door figure comes back out because that is what a car on the lot
+ * is actually compared against — the price a member pays includes tax, doc fee
+ * and title, and filtering inventory on a sticker price would show them cars
+ * they cannot afford.
+ *
+ * Clamped at 0: a budget too small to reach any car yields nothing, never a
+ * negative price.
  */
-export function solveBidCeiling(
+export function solveAffordability(
   envelope: BudgetEnvelope,
   terms: CreditTerms,
   costs: DealCosts
-): BidCeiling {
+): Affordability {
   const maxAmountFinancedCents = maxAmountFinanced(
     envelope.monthlyCents,
     terms.aprBps,
     terms.termMonths
   );
 
-  const maxRetailPriceCents = maxRetailForBudget(
-    maxAmountFinancedCents + envelope.downCents,
-    costs
-  );
-
-  const maxAuctionBidCents = Math.max(
+  const maxOutTheDoorCents = Math.max(
     0,
-    maxRetailPriceCents -
-      costs.reconEstimateCents -
-      costs.transportCents -
-      costs.buyFeeCents -
-      costs.targetGrossCents
+    maxAmountFinancedCents + envelope.downCents
   );
 
-  return { maxAmountFinancedCents, maxRetailPriceCents, maxAuctionBidCents };
+  const maxRetailPriceCents = Math.max(
+    0,
+    maxRetailForBudget(maxOutTheDoorCents, costs)
+  );
+
+  return { maxAmountFinancedCents, maxRetailPriceCents, maxOutTheDoorCents };
 }
 
 /**
@@ -277,60 +274,48 @@ export function toTila(loan: AmortizedLoan): TilaDisclosure {
   };
 }
 
-/**
- * Price a specific lot FORWARD into a member offer. solveBidCeiling works
- * backwards from the budget; this is the other direction — start at the lot's
- * MMR, stack the real costs, and land on the member's actual numbers.
- */
-export function priceLot(
-  lot: AuctionLot,
-  envelope: BudgetEnvelope,
-  terms: CreditTerms,
-  costs: DealCosts,
-  score: number = 0
-): Proposal {
-  const retailPriceCents =
-    lot.mmrCents +
-    costs.buyFeeCents +
-    costs.transportCents +
-    costs.reconEstimateCents +
-    costs.targetGrossCents;
-
-  const outTheDoorCents =
-    retailPriceCents +
-    salesTaxOn(retailPriceCents, costs) +
-    costs.docFeeCents +
-    costs.titleRegCents;
-
-  const amountFinancedCents = outTheDoorCents - envelope.downCents;
-  const loan = amortize(amountFinancedCents, terms.aprBps, terms.termMonths);
-
-  const ceiling = solveBidCeiling(envelope, terms, costs);
-
-  return {
-    lot,
-    retailPriceCents,
-    outTheDoorCents,
-    downCents: envelope.downCents,
-    loan,
-    headroomCents: ceiling.maxAuctionBidCents - lot.mmrCents,
-    score,
-  };
-}
-
 /** The down payment floor for a given out-the-door price. Ceil, never short. */
 export function minDownFor(outTheDoorCents: Money): Money {
   return Math.ceil(outTheDoorCents * UNDERWRITING.minDownRatio);
 }
 
 /**
- * Price an available-now car into a financed offer.
+ * The retail price of a car on the lot.
  *
- * The shape mirrors `priceLot`, with two deliberate differences:
+ * Two modes, and the distinction matters. While a car is being *sourced*, its
+ * price is derived: what it would have to retail for to leave the target gross
+ * intact after acquisition, buy fee, transport and recon. Once the car is
+ * actually owned and on the lot, the price is a decision somebody makes and
+ * answers for, so `retailPriceCentsOverride` — set through the admin — wins.
  *
- *  - The base is `acquisitionTargetCents`, not the asking price. What the
- *    seller wants is not a cost; what the dealer pays is. Pricing off the ask
- *    hands the seller the dealer's gross.
+ * The derivation prices off `acquisitionTargetCents`, never the asking price.
+ * What the seller wants is not a cost; what we pay is. Pricing off the ask
+ * hands the seller our gross.
+ */
+export function retailPriceFor(
+  listing: RetailListing,
+  costs: DealCosts
+): Money {
+  if (listing.retailPriceCentsOverride !== undefined) {
+    return listing.retailPriceCentsOverride;
+  }
+  return (
+    listing.acquisitionTargetCents +
+    costs.buyFeeCents +
+    costs.transportCents +
+    listing.estimatedReconCents +
+    costs.targetGrossCents
+  );
+}
+
+/**
+ * Price a car on the lot into a financed offer against one member's budget.
+ *
+ * Two things about the base price are deliberate:
+ *
+ *  - It is `acquisitionTargetCents`, not the asking price. What the seller
+ *    wants is not a cost; what we pay is. Pricing off the ask hands the seller
+ *    our gross.
  *  - Recon is the listing's own per-car estimate rather than the state-level
  *    budget line, because on a car we can physically inspect we have a real
  *    number and should use it.
@@ -345,12 +330,7 @@ export function priceRetailListing(
   terms: CreditTerms,
   costs: DealCosts
 ): RetailOffer {
-  const retailPriceCents =
-    listing.acquisitionTargetCents +
-    costs.buyFeeCents +
-    costs.transportCents +
-    listing.estimatedReconCents +
-    costs.targetGrossCents;
+  const retailPriceCents = retailPriceFor(listing, costs);
 
   const salesTaxCents = salesTaxOn(retailPriceCents, costs);
   const outTheDoorCents =
@@ -385,23 +365,6 @@ export function ptiRatio(
  * Every failed check is reported — a member should see the whole picture, not
  * fix one reason and discover the next.
  */
-export function passesUnderwriting(
-  proposal: Proposal,
-  grossMonthlyIncomeCents: Money
-): { ok: boolean; reasons: string[] } {
-  return underwrite(
-    {
-      monthlyPaymentCents: proposal.loan.monthlyPaymentCents,
-      downCents: proposal.downCents,
-      outTheDoorCents: proposal.outTheDoorCents,
-      mileage: proposal.lot.mileage,
-      termMonths: proposal.loan.termMonths,
-    },
-    grossMonthlyIncomeCents
-  );
-}
-
-/** The same gate for an available-now car. Same thresholds, same strings. */
 export function passesRetailUnderwriting(
   offer: RetailOffer,
   grossMonthlyIncomeCents: Money
@@ -419,9 +382,9 @@ export function passesRetailUnderwriting(
 }
 
 /**
- * The single implementation of the ability-to-pay gate. Auction proposals and
- * available-now offers both route through here so the thresholds cannot drift
- * apart between the two paths.
+ * The single implementation of the ability-to-pay gate. Both the
+ * budget-shaped offer and the per-plan quote route through here, so the
+ * thresholds cannot drift apart between the two callers.
  */
 function underwrite(
   facts: {
@@ -544,8 +507,8 @@ export function installmentPlan(
   const amountFinancedCents = Math.max(0, outTheDoorCents - downCents);
 
   if (aprBps !== 0) {
-    // Interest-bearing fallback. Kept so the auction path and any future
-    // state that requires a rate can share this shape.
+    // Interest-bearing fallback. Kept so a future state that requires a rate,
+    // and the illustrative comparison below, can share this shape.
     const loan = amortize(amountFinancedCents, aprBps, termMonths);
     const finalPaymentCents =
       loan.totalOfPaymentsCents - loan.monthlyPaymentCents * (termMonths - 1);
@@ -595,12 +558,7 @@ export function quoteListing(
   termsMonths: readonly number[] = OFFERED_TERMS_MONTHS,
   aprBps: Bps = ZERO_APR_BPS
 ): PriceQuote {
-  const retailPriceCents =
-    listing.acquisitionTargetCents +
-    costs.buyFeeCents +
-    costs.transportCents +
-    listing.estimatedReconCents +
-    costs.targetGrossCents;
+  const retailPriceCents = retailPriceFor(listing, costs);
 
   const salesTaxCents = salesTaxOn(retailPriceCents, costs);
   const outTheDoorCents =

@@ -9,7 +9,7 @@
  *
  * ⚠️ The figures below are researched starting points, not legal advice, and
  * every one of them needs confirmation against the current state schedule and
- * the partner dealer's actual fee sheet before a contract is generated.
+ * our own published fee sheet before a contract is generated.
  */
 
 import type { DealCosts } from "./types";
@@ -30,7 +30,7 @@ export const TX_DEAL_COSTS: DealCosts = { ...DEFAULT_DEAL_COSTS };
  *     County — and that surtax applies only to the first $5,000 of the price.
  *     Blending it into one rate overstates tax on every car above $5,000.
  *  2. Florida does not cap dealer documentary fees, so they run far above the
- *     Texas $299. $699 is a defensible BHPH number; the partner dealer's real
+ *     Texas $299. $699 is a defensible BHPH number; our real
  *     fee schedule governs.
  *  3. Title plus an initial registration (the one-time new-plate fee is the
  *     large piece) lands near $400 rather than $250.
