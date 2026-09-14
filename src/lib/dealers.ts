@@ -16,7 +16,22 @@ export interface Dealer {
   dbaName?: string;
   state: string;
   city: string;
-  /** State retail installment seller / sales finance licence. */
+  /**
+   * Motor vehicle dealer licence — in Florida, Ch. 320.27, F.S.
+   *
+   * This is the licence that permits buying and selling cars at all, and it is
+   * what a wholesale auction checks before it lets anyone register to bid. It
+   * gates trading and services. It does NOT permit holding paper.
+   */
+  dealerLicenseNumber?: string;
+  dealerLicenseVerifiedAt?: string;
+  /**
+   * Retail installment seller licence — in Florida, Ch. 520, F.S.
+   *
+   * A different licence answering a different question: may this dealer be the
+   * CREDITOR on an instalment contract. Selling a car for cash needs the dealer
+   * licence; selling it for twelve payments needs this one as well.
+   */
   licenseNumber?: string;
   licenseVerifiedAt?: string;
   /** Where the member is told to turn up. On the dealer, not in the UI. */
@@ -52,6 +67,14 @@ export const DEALERS: Dealer[] = [
     // These two booleans are a SEED ONLY. At runtime the payment gate reads the
     // `dealers` table via `loadDealer()`, which the `account.updated` webhook
     // keeps in step with Stripe in both directions.
+    // Dealer licence (Ch. 320.27) and auction access are in hand. The seed
+    // carries no numbers — the `dealers` row is the source of truth, and this
+    // exists only so local work without a database still renders.
+    dealerLicenseNumber: undefined,
+    dealerLicenseVerifiedAt: undefined,
+    // Retail installment seller (Ch. 520) — unconfirmed, and deliberately left
+    // so. It is the licence that permits holding paper, and it is not implied
+    // by any of the others.
     licenseNumber: undefined,
     licenseVerifiedAt: undefined,
     stripeAccountId: "acct_1U8rZLEY3nQTGwYo",
@@ -75,10 +98,29 @@ export function findDealer(id: string): Dealer | undefined {
   return DEALERS.find((d) => d.id === id);
 }
 
-/** Why this dealer cannot take money yet, or null if they can. */
-export function dealerBlockReason(dealer: Dealer): string | null {
-  if (!dealer.licenseVerifiedAt) {
-    return "This dealer's retail installment seller licence has not been verified.";
+/**
+ * The two gates, kept apart on purpose.
+ *
+ * They used to be one, and that was wrong in a way that only showed up once
+ * there was something to sell that is not credit. A motor vehicle dealer
+ * licence permits trading cars and bidding at wholesale auctions; a retail
+ * installment seller licence permits being the creditor on a contract payable
+ * in instalments. They are separate licences, issued under separate chapters,
+ * and they answer separate questions.
+ *
+ * Conflating them blocks a cash sale, or a brokerage fee, on the absence of a
+ * licence neither of those needs — which is not caution, it is just a wrong
+ * answer that happens to fail closed.
+ */
+
+/**
+ * Can this dealer trade and take money for a service — a brokerage fee, a
+ * deposit, a car sold for cash? Needs the dealer licence and a working
+ * connected account, and nothing more.
+ */
+export function serviceBlockReason(dealer: Dealer): string | null {
+  if (!dealer.dealerLicenseVerifiedAt) {
+    return "This dealer's motor vehicle dealer licence has not been verified.";
   }
   if (!dealer.stripeAccountId) {
     return "This dealer has not connected a Stripe account, so there is nowhere for a payment to settle.";
@@ -89,6 +131,24 @@ export function dealerBlockReason(dealer: Dealer): string | null {
   return null;
 }
 
-export function canAcceptPayments(dealer: Dealer): boolean {
-  return dealerBlockReason(dealer) === null;
+/**
+ * Can this dealer be the creditor on an instalment contract? Everything above,
+ * plus the retail installment seller licence. An unlicensed creditor cannot
+ * hold the paper, so no financed deal may reference them.
+ */
+export function creditBlockReason(dealer: Dealer): string | null {
+  const service = serviceBlockReason(dealer);
+  if (service) return service;
+  if (!dealer.licenseVerifiedAt) {
+    return "This dealer's retail installment seller licence has not been verified, so it cannot offer a payment plan. Paying in full is unaffected.";
+  }
+  return null;
+}
+
+export function canSellServices(dealer: Dealer): boolean {
+  return serviceBlockReason(dealer) === null;
+}
+
+export function canExtendCredit(dealer: Dealer): boolean {
+  return creditBlockReason(dealer) === null;
 }

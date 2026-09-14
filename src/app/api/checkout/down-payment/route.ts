@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireMember, Unauthorized, unauthorizedResponse } from "@/lib/auth";
-import { canAcceptPayments, dealerBlockReason } from "@/lib/dealers";
+import { creditBlockReason, serviceBlockReason } from "@/lib/dealers";
 import { loadDealer } from "@/lib/dealer-store";
 import { loadListing } from "@/lib/listing-store";
 import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { passesPlanUnderwriting, quoteListing } from "@/lib/finance";
 import { createDownPaymentCheckout } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
-import { isUnderwritable, OFFERED_TERMS_MONTHS } from "@/lib/types";
+import { isUnderwritable } from "@/lib/types";
+import { MAX_TERM_MONTHS, MIN_TERM_MONTHS } from "@/lib/payment-slider";
 
 /**
  * Start a down payment (or a payment in full) for one car.
@@ -39,13 +40,21 @@ export async function POST(request: Request) {
     );
   }
 
+  // A range rather than a menu: the payment builder lets a member choose any
+  // whole number of months in range. The bounds are still enforced here and
+  // not merely in the UI — a term is an input from a browser like any other,
+  // and the ceiling is the underwriting cap rather than a cosmetic limit.
   const payingInFull = termMonths === 0;
   if (
     !payingInFull &&
-    !OFFERED_TERMS_MONTHS.includes(termMonths as (typeof OFFERED_TERMS_MONTHS)[number])
+    (!Number.isInteger(termMonths) ||
+      termMonths < MIN_TERM_MONTHS ||
+      termMonths > MAX_TERM_MONTHS)
   ) {
     return NextResponse.json(
-      { error: `termMonths must be 0 (pay in full) or one of ${OFFERED_TERMS_MONTHS.join(", ")}` },
+      {
+        error: `termMonths must be 0 (pay in full) or a whole number of months between ${MIN_TERM_MONTHS} and ${MAX_TERM_MONTHS}.`,
+      },
       { status: 400 }
     );
   }
@@ -74,10 +83,18 @@ export async function POST(request: Request) {
   if (!dealer) {
     return NextResponse.json({ error: "No dealer for this vehicle" }, { status: 500 });
   }
-  if (!canAcceptPayments(dealer) || !dealer.stripeAccountId) {
+  // Which gate applies depends on what is being sold. A car paid for in full
+  // is a sale; the same car over twelve payments is a credit sale, and only
+  // the second needs a retail installment seller licence. Blocking a cash
+  // buyer on a licence their purchase does not involve is a wrong answer that
+  // merely happens to fail closed.
+  const blockReason = payingInFull
+    ? serviceBlockReason(dealer)
+    : creditBlockReason(dealer);
+  if (blockReason || !dealer.stripeAccountId) {
     // 503, not 400: the member did nothing wrong and the answer may change.
     return NextResponse.json(
-      { error: dealerBlockReason(dealer) },
+      { error: blockReason ?? "This dealer has no connected account." },
       { status: 503 }
     );
   }
@@ -93,7 +110,12 @@ export async function POST(request: Request) {
 
   // ---- recompute every figure server-side --------------------------------
   const costs = dealCostsFor(listing.state);
-  const quote = quoteListing(listing, costs, downCents);
+  const quote = quoteListing(
+    listing,
+    costs,
+    downCents,
+    payingInFull ? [] : [termMonths]
+  );
   const plan = payingInFull
     ? quote.plans.find((p) => p.kind === "cash")!
     : quote.plans.find((p) => p.termMonths === termMonths);

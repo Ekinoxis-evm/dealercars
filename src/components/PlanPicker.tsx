@@ -6,15 +6,20 @@ import { apiFetch, ApiError } from "@/lib/api-client";
 import { financingComparison, formatBps, formatMoney } from "@/lib/finance";
 import {
   DOWN_STEP,
+  MAX_TERM_MONTHS,
+  MIN_TERM_MONTHS,
   MONTHLY_STEP,
   clampDown,
+  clampTerm,
   downBounds,
   downForMonthly,
   monthlyBounds,
   monthlySliderRange,
   monthlyThumbFor,
+  termForMonthly,
+  type SolveFor,
 } from "@/lib/payment-slider";
-import type { PaymentPlan, PriceQuote, RetailListing } from "@/lib/types";
+import type { PriceQuote, RetailListing } from "@/lib/types";
 import { RegZDisclosure } from "./RegZDisclosure";
 
 /**
@@ -73,22 +78,36 @@ export function PlanPicker({
     [initialQuote.minDownCents, initialQuote.outTheDoorCents]
   );
 
+  /**
+   * Which quantity the builder works out. The other two are the sliders.
+   *
+   * Down payment and term are the canonical state — every quote is asked for
+   * as a (down, term) pair — and "solve for monthly" is simply the mode where
+   * both are set directly. The other two modes drag a target payment and
+   * derive one of the pair from it, which is why there is no third piece of
+   * state for the payment: it would be a second source of truth for a figure
+   * the server already returns.
+   */
+  const [solveFor, setSolveFor] = useState<SolveFor>("monthly");
   const [downCents, setDownCents] = useState(() =>
     clampDown(initialQuote.minDownCents, bounds)
   );
-  const [quote, setQuote] = useState<PriceQuote>(initialQuote);
   const [termMonths, setTermMonths] = useState(36);
+  const [quote, setQuote] = useState<PriceQuote>(initialQuote);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reasons, setReasons] = useState<string[] | null>(null);
 
-  // Re-quote from the server whenever the down payment settles.
+  // Re-quote whenever the pair settles. The term is part of the request now:
+  // the builder offers any term in range, so the server has to be asked for
+  // the one in play rather than handed a fixed menu to pick from.
   useEffect(() => {
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
         const data = await apiFetch<{ quote: PriceQuote }>(
-          `/api/quote?listingId=${encodeURIComponent(listing.id)}&downCents=${downCents}`,
+          `/api/quote?listingId=${encodeURIComponent(listing.id)}` +
+            `&downCents=${downCents}&termMonths=${termMonths}`,
           { authenticated: false }
         );
         if (!cancelled) setQuote(data.quote);
@@ -100,57 +119,61 @@ export function PlanPicker({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [downCents, listing.id]);
+  }, [downCents, termMonths, listing.id]);
 
   const plan = useMemo(
-    () => quote.plans.find((p) => p.termMonths === termMonths),
-    [quote, termMonths]
+    () => quote.plans.find((p) => p.kind === "installments"),
+    [quote]
   );
   const cash = quote.plans.find((p) => p.kind === "cash");
   const belowFloor = downCents < quote.minDownCents;
 
-  /**
-   * Where the monthly slider's thumb sits, projected from the down payment the
-   * member is dragging right now. Never rendered as a figure — the payment
-   * they read comes from `plan`, which is the server's.
-   */
-  /** What the ends actually cost — these are the figures a member reads. */
+  /** What the payment slider can reach, and where its thumb sits right now. */
   const monthlyRange = useMemo(
-    () => monthlyBounds(quote.outTheDoorCents, termMonths, bounds),
-    [quote.outTheDoorCents, termMonths, bounds]
+    () => monthlyBounds(quote.outTheDoorCents, solveFor, downCents, termMonths, bounds),
+    [quote.outTheDoorCents, solveFor, downCents, termMonths, bounds]
   );
-  /** The grid the thumb travels on, which is wider by up to a step each end. */
   const monthlyTravel = useMemo(
-    () => monthlySliderRange(quote.outTheDoorCents, termMonths, bounds),
-    [quote.outTheDoorCents, termMonths, bounds]
+    () => monthlySliderRange(quote.outTheDoorCents, solveFor, downCents, termMonths, bounds),
+    [quote.outTheDoorCents, solveFor, downCents, termMonths, bounds]
   );
-
   const monthlyThumb = monthlyThumbFor(
     quote.outTheDoorCents,
     downCents,
     termMonths,
-    bounds
+    monthlyTravel
   );
 
-  /** Dragging the monthly slider sets the down payment it implies. */
+  /** Dragging the payment derives whichever of the pair is not pinned. */
   function setMonthly(monthlyCents: number) {
-    setDownCents(
-      downForMonthly(quote.outTheDoorCents, monthlyCents, termMonths, bounds)
-    );
+    if (solveFor === "term") {
+      setTermMonths(
+        termForMonthly(quote.outTheDoorCents, downCents, monthlyCents, monthlyTravel)
+      );
+    } else {
+      setDownCents(
+        downForMonthly(
+          quote.outTheDoorCents,
+          monthlyCents,
+          termMonths,
+          bounds,
+          monthlyTravel
+        )
+      );
+    }
   }
 
   /**
-   * The quote on screen was computed at `quote.downCents`; the member may have
-   * already dragged past it. While those disagree, a figure is in flight.
-   *
-   * Dimmed, never replaced by a local guess: a payment that has not come back
-   * from the server must not read as confirmed, and the projections above are
-   * only good enough to position a thumb.
+   * The quote on screen was computed at `quote.downCents` for one term; the
+   * member may have already dragged past it. While those disagree, a figure is
+   * in flight — dimmed, never replaced by a local guess, because a payment
+   * that has not come back from the server must not read as confirmed.
    */
-  const settlingClass =
-    downCents !== quote.downCents
-      ? "opacity-50 transition-opacity"
-      : "transition-opacity";
+  const settling =
+    downCents !== quote.downCents || (plan?.termMonths ?? termMonths) !== termMonths;
+  const settlingClass = settling
+    ? "opacity-50 transition-opacity"
+    : "transition-opacity";
 
   async function startCheckout(kind: "plan" | "cash") {
     setError(null);
@@ -198,50 +221,68 @@ export function PlanPicker({
         </p>
       </header>
 
-      {/* --------------------------------------------------------- term */}
+      {/* ---------------------------------------------------- solve for */}
+      {/* The member sets the two they know; this names the one they don't.
+          A fixed menu of terms answers only "what is the payment", which is
+          the wrong question for anyone who already knows their payment. */}
       <fieldset className="px-4 pt-4 sm:px-6">
-        <legend className="sr-only">Pay it off over</legend>
-        <div className="flex gap-1.5">
-          {quote.plans
-            .filter((p): p is PaymentPlan => p.kind === "installments")
-            .map((p) => {
-              const selected = p.termMonths === termMonths;
-              return (
-                <button
-                  key={p.termMonths}
-                  type="button"
-                  onClick={() => setTermMonths(p.termMonths)}
-                  aria-pressed={selected}
-                  className={`tnum flex-1 border px-2 py-1.5 font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] transition-colors ${
-                    selected
-                      ? "border-accent bg-accent text-accent-ink"
-                      : "border-rule-strong bg-paper text-ink-muted hover:border-accent hover:text-ink"
-                  }`}
-                >
-                  {p.termMonths} mo
-                </button>
-              );
-            })}
+        <legend className="font-mono text-[0.625rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
+          Work out my
+        </legend>
+        <div className="mt-1.5 flex gap-1.5">
+          {(
+            [
+              ["monthly", "Payment"],
+              ["term", "Months"],
+              ["down", "Down"],
+            ] as [SolveFor, string][]
+          ).map(([value, label]) => {
+            const selected = value === solveFor;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setSolveFor(value)}
+                aria-pressed={selected}
+                className={`flex-1 border px-2 py-1.5 font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] transition-colors ${
+                  selected
+                    ? "border-accent bg-accent text-accent-ink"
+                    : "border-rule-strong bg-paper text-ink-muted hover:border-accent hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 
       {/* ---------------------------------------------- the one answer */}
-      {/* The result of the choice, not a menu of them. Three payments shown
-          side by side read as a comparison table and make the member do the
-          picking twice — once on term, once again on price. */}
       <div className={`px-4 pt-4 sm:px-6 ${settlingClass}`}>
         <p className="tnum flex items-baseline gap-2">
           <span className="font-display text-5xl font-extrabold leading-none tracking-tight text-brass sm:text-6xl">
-            {plan ? formatMoney(plan.monthlyPaymentCents, { cents: true }) : "—"}
+            {!plan
+              ? "—"
+              : solveFor === "term"
+                ? plan.termMonths
+                : solveFor === "down"
+                  ? formatMoney(plan.downCents)
+                  : formatMoney(plan.monthlyPaymentCents, { cents: true })}
           </span>
           <span className="font-mono text-[0.8125rem] uppercase tracking-[0.08em] text-ink-muted">
-            /mo × {termMonths}
+            {solveFor === "term"
+              ? "months"
+              : solveFor === "down"
+                ? "down"
+                : `/mo × ${termMonths}`}
           </span>
         </p>
         {plan && (
           <p className="tnum mt-1.5 font-mono text-[0.75rem] text-ink-muted">
-            {formatMoney(plan.downCents)} down · last payment{" "}
-            {formatMoney(plan.finalPaymentCents, { cents: true })} ·{" "}
+            {solveFor !== "down" && `${formatMoney(plan.downCents)} down · `}
+            {solveFor !== "monthly" &&
+              `${formatMoney(plan.monthlyPaymentCents, { cents: true })}/mo · `}
+            {solveFor !== "term" && `${plan.termMonths} months · `}
             <span className="text-accent">
               {formatMoney(plan.financeChargeCents, { cents: true })} interest
             </span>
@@ -250,63 +291,109 @@ export function PlanPicker({
       </div>
 
       <div className="px-4 pb-5 pt-5 sm:px-6">
-        {/* ---------------------------------------------- down payment */}
-        {/* Two sliders, one dial. Labels carry the numbers so no prose has to. */}
-        <div className="flex items-baseline justify-between gap-4">
-          <label
-            htmlFor="down"
-            className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-          >
-            Cash down
-          </label>
-          <span className="tnum font-mono text-[0.875rem] font-semibold">
-            {formatMoney(downCents)}
-          </span>
-        </div>
-        <input
-          id="down"
-          type="range"
-          min={bounds.min}
-          max={bounds.max}
-          step={DOWN_STEP}
-          value={downCents}
-          onChange={(e) => setDownCents(Number(e.target.value))}
-          aria-valuetext={formatMoney(downCents)}
-          className="mt-1.5"
-        />
-        <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-          <span>{formatMoney(bounds.min)} min · 18%</span>
-          <span>{formatMoney(bounds.max)}</span>
-        </div>
+        {/* ------------------------------------------------ cash down */}
+        {solveFor !== "down" && (
+          <div className="mb-4">
+            <div className="flex items-baseline justify-between gap-4">
+              <label
+                htmlFor="down"
+                className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+              >
+                Cash down
+              </label>
+              <span className="tnum font-mono text-[0.875rem] font-semibold">
+                {formatMoney(downCents)}
+              </span>
+            </div>
+            <input
+              id="down"
+              type="range"
+              min={bounds.min}
+              max={bounds.max}
+              step={DOWN_STEP}
+              value={downCents}
+              onChange={(e) => setDownCents(Number(e.target.value))}
+              aria-valuetext={formatMoney(downCents)}
+              className="mt-1.5"
+            />
+            <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
+              <span>{formatMoney(bounds.min)} min · 18%</span>
+              <span>{formatMoney(bounds.max)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* --------------------------------------------------- months */}
+        {solveFor !== "term" && (
+          <div className="mb-4">
+            <div className="flex items-baseline justify-between gap-4">
+              <label
+                htmlFor="term"
+                className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+              >
+                Months to pay
+              </label>
+              <span className="tnum font-mono text-[0.875rem] font-semibold">
+                {termMonths}
+              </span>
+            </div>
+            <input
+              id="term"
+              type="range"
+              min={MIN_TERM_MONTHS}
+              max={MAX_TERM_MONTHS}
+              step={1}
+              value={termMonths}
+              onChange={(e) => setTermMonths(clampTerm(Number(e.target.value)))}
+              aria-valuetext={`${termMonths} months`}
+              className="mt-1.5"
+            />
+            <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
+              <span>{MIN_TERM_MONTHS} mo</span>
+              <span>{MAX_TERM_MONTHS} mo</span>
+            </div>
+          </div>
+        )}
 
         {/* -------------------------------------------- monthly payment */}
-        <div className="mt-4 flex items-baseline justify-between gap-4">
-          <label
-            htmlFor="monthly"
-            className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-          >
-            Or set the payment
-          </label>
-        </div>
-        <input
-          id="monthly"
-          type="range"
-          min={monthlyTravel.min}
-          max={monthlyTravel.max}
-          step={MONTHLY_STEP}
-          value={monthlyThumb}
-          onChange={(e) => setMonthly(Number(e.target.value))}
-          aria-valuetext={
-            plan
-              ? `${formatMoney(plan.monthlyPaymentCents, { cents: true })} per month`
-              : undefined
-          }
-          className="mt-1.5"
-        />
-        <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-          <span>{formatMoney(monthlyRange.min, { cents: true })}/mo</span>
-          <span>{formatMoney(monthlyRange.max, { cents: true })}/mo</span>
-        </div>
+        {solveFor !== "monthly" && (
+          <div className="mb-4">
+            <div className="flex items-baseline justify-between gap-4">
+              <label
+                htmlFor="monthly"
+                className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+              >
+                Payment I can make
+              </label>
+              <span
+                className={`tnum font-mono text-[0.875rem] font-semibold ${settlingClass}`}
+              >
+                {plan
+                  ? formatMoney(plan.monthlyPaymentCents, { cents: true })
+                  : "—"}
+              </span>
+            </div>
+            <input
+              id="monthly"
+              type="range"
+              min={monthlyTravel.min}
+              max={monthlyTravel.max}
+              step={MONTHLY_STEP}
+              value={monthlyThumb}
+              onChange={(e) => setMonthly(Number(e.target.value))}
+              aria-valuetext={
+                plan
+                  ? `${formatMoney(plan.monthlyPaymentCents, { cents: true })} per month`
+                  : undefined
+              }
+              className="mt-1.5"
+            />
+            <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
+              <span>{formatMoney(monthlyRange.min, { cents: true })}/mo</span>
+              <span>{formatMoney(monthlyRange.max, { cents: true })}/mo</span>
+            </div>
+          </div>
+        )}
 
         {belowFloor && (
           <p

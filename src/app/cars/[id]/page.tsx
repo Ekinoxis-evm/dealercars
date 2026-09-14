@@ -5,7 +5,7 @@ import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { minDownFor, quoteListing, formatMoney } from "@/lib/finance";
 import { clampDown, downBounds } from "@/lib/payment-slider";
 import { loadDealer } from "@/lib/dealer-store";
-import { dealerBlockReason } from "@/lib/dealers";
+import { creditBlockReason } from "@/lib/dealers";
 import { PlanPicker, VisitScheduler } from "@/components/privy-deferred";
 import { CarGallery } from "@/components/CarGallery";
 
@@ -62,7 +62,10 @@ export default async function CarPage({
   );
   const quote = quoteListing(listing, costs, startingDownCents);
 
-  const blockReason = dealer ? dealerBlockReason(dealer) : "No dealer is assigned to this car.";
+  // The credit gate: this page offers payment plans. A dealer who may sell for
+  // cash but not on credit is told exactly that, rather than being refused
+  // outright.
+  const blockReason = dealer ? creditBlockReason(dealer) : "No dealer is assigned to this car.";
   const isSourced = listing.status === "sourced";
 
   return (

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireMember, Unauthorized, unauthorizedResponse } from "@/lib/auth";
-import { canAcceptPayments, dealerBlockReason, OPERATING_DEALER_ID } from "@/lib/dealers";
+import { canSellServices, serviceBlockReason, OPERATING_DEALER_ID } from "@/lib/dealers";
 import { loadDealer } from "@/lib/dealer-store";
 import {
   AUCTION_ACCESS_FEE_CENTS,
@@ -74,9 +74,12 @@ export async function POST(request: Request) {
   if (!dealer) {
     return NextResponse.json({ error: "No dealer is configured." }, { status: 500 });
   }
-  if (!canAcceptPayments(dealer) || !dealer.stripeAccountId) {
+  // The SERVICE gate, not the credit one. This fee buys bidding at an auction
+  // under a dealer licence; it is not credit and needs no retail installment
+  // seller licence. Gating it on one would refuse a lawful sale.
+  if (!canSellServices(dealer) || !dealer.stripeAccountId) {
     // 503, not 400: the member did nothing wrong and the answer may change.
-    return NextResponse.json({ error: dealerBlockReason(dealer) }, { status: 503 });
+    return NextResponse.json({ error: serviceBlockReason(dealer) }, { status: 503 });
   }
 
   // One live purchase at a time. Somebody who has already paid and not yet been

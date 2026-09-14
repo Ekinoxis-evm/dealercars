@@ -4,6 +4,7 @@ import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { quoteListing } from "@/lib/finance";
 import { minDownFor } from "@/lib/finance";
 import { OFFERED_TERMS_MONTHS } from "@/lib/types";
+import { MAX_TERM_MONTHS, MIN_TERM_MONTHS } from "@/lib/payment-slider";
 
 /**
  * Price one car at a given down payment. Public — this is the shop window, and
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const listingId = params.get("listingId");
   const downRaw = params.get("downCents");
+  const termRaw = params.get("termMonths");
 
   if (!listingId) {
     return NextResponse.json({ error: "listingId is required" }, { status: 400 });
@@ -63,11 +65,32 @@ export async function GET(request: Request) {
     );
   }
 
-  const quote = quoteListing(listing, costs, downCents);
+  // A term may be named explicitly, because the payment builder no longer
+  // offers a fixed menu — a member picks any term in range and the plan is
+  // quoted for it. Absent, the presets are quoted as before.
+  let terms: readonly number[] = OFFERED_TERMS_MONTHS;
+  if (termRaw !== null) {
+    const termMonths = Number(termRaw);
+    if (
+      !Number.isInteger(termMonths) ||
+      termMonths < MIN_TERM_MONTHS ||
+      termMonths > MAX_TERM_MONTHS
+    ) {
+      return NextResponse.json(
+        {
+          error: `termMonths must be a whole number of months between ${MIN_TERM_MONTHS} and ${MAX_TERM_MONTHS}.`,
+        },
+        { status: 400 }
+      );
+    }
+    terms = [termMonths];
+  }
+
+  const quote = quoteListing(listing, costs, downCents, terms);
 
   return NextResponse.json({
     quote,
-    offeredTerms: OFFERED_TERMS_MONTHS,
+    offeredTerms: terms,
     // Stated plainly so the UI never has to infer it from an APR of zero.
     interestFree: true,
   });

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { formatMoney } from "@/lib/finance";
 import { loadDealer } from "@/lib/dealer-store";
-import { OPERATING_DEALER_ID, dealerBlockReason } from "@/lib/dealers";
+import { OPERATING_DEALER_ID, serviceBlockReason } from "@/lib/dealers";
 import {
   AUCTION_ACCESS_FEE_CENTS,
   AUCTION_ACCESS_EXCLUDES,
@@ -35,7 +35,8 @@ export default async function AuctionAccessPage() {
         dealer.postalCode ? ` ${dealer.postalCode}` : ""
       }`
     : undefined;
-  const blockReason = dealer ? dealerBlockReason(dealer) : "No dealer is configured.";
+  // Service gate, not the credit one — see the checkout route.
+  const blockReason = dealer ? serviceBlockReason(dealer) : "No dealer is configured.";
 
   return (
     <main>
