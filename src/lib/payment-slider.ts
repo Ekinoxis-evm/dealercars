@@ -47,6 +47,14 @@ export const MIN_TERM_MONTHS = 6;
 export const MAX_TERM_MONTHS = UNDERWRITING.maxTermMonths;
 
 /**
+ * The term the builder opens on, and the one the car page server-renders its
+ * first quote for. Shared so the two cannot disagree: the page quoting a
+ * different term than the picker starts on puts a payment on screen labelled
+ * with the wrong number of months until the first fetch lands.
+ */
+export const DEFAULT_TERM_MONTHS = 36;
+
+/**
  * The down payment ceiling, as a share of the out-the-door price. Past half,
  * the plan stops being the point and the pay-in-full button is right there.
  */

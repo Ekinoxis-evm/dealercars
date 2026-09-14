@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { loadListing } from "@/lib/listing-store";
 import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { minDownFor, quoteListing, formatMoney } from "@/lib/finance";
-import { clampDown, downBounds } from "@/lib/payment-slider";
+import { DEFAULT_TERM_MONTHS, clampDown, downBounds } from "@/lib/payment-slider";
 import { loadDealer } from "@/lib/dealer-store";
 import { creditBlockReason } from "@/lib/dealers";
 import { PlanPicker, VisitScheduler } from "@/components/privy-deferred";
@@ -60,7 +60,9 @@ export default async function CarPage({
     minDownCents,
     downBounds(minDownCents, provisional.outTheDoorCents)
   );
-  const quote = quoteListing(listing, costs, startingDownCents);
+  const quote = quoteListing(listing, costs, startingDownCents, [
+    DEFAULT_TERM_MONTHS,
+  ]);
 
   // The credit gate: this page offers payment plans. A dealer who may sell for
   // cash but not on credit is told exactly that, rather than being refused

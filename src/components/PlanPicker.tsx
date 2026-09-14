@@ -1,21 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { financingComparison, formatBps, formatMoney } from "@/lib/finance";
+import { dollarsToCents } from "@/lib/money-input";
 import {
-  DOWN_STEP,
   MAX_TERM_MONTHS,
   MIN_TERM_MONTHS,
-  MONTHLY_STEP,
+  DEFAULT_TERM_MONTHS,
   clampDown,
   clampTerm,
   downBounds,
   downForMonthly,
   monthlyBounds,
   monthlySliderRange,
-  monthlyThumbFor,
   termForMonthly,
   type SolveFor,
 } from "@/lib/payment-slider";
@@ -92,7 +91,7 @@ export function PlanPicker({
   const [downCents, setDownCents] = useState(() =>
     clampDown(initialQuote.minDownCents, bounds)
   );
-  const [termMonths, setTermMonths] = useState(36);
+  const [termMonths, setTermMonths] = useState(DEFAULT_TERM_MONTHS);
   const [quote, setQuote] = useState<PriceQuote>(initialQuote);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,9 +120,13 @@ export function PlanPicker({
     };
   }, [downCents, termMonths, listing.id]);
 
+  // Matched to the SELECTED term, never "the first instalment plan". The
+  // server-rendered quote carries the preset terms, so taking the first one
+  // put the 12-month payment on screen under a "× 36" label until the first
+  // fetch replaced it.
   const plan = useMemo(
-    () => quote.plans.find((p) => p.kind === "installments"),
-    [quote]
+    () => quote.plans.find((p) => p.termMonths === termMonths),
+    [quote, termMonths]
   );
   const cash = quote.plans.find((p) => p.kind === "cash");
   const belowFloor = downCents < quote.minDownCents;
@@ -133,18 +136,18 @@ export function PlanPicker({
     () => monthlyBounds(quote.outTheDoorCents, solveFor, downCents, termMonths, bounds),
     [quote.outTheDoorCents, solveFor, downCents, termMonths, bounds]
   );
+  /**
+   * The grid the solvers pin against. It no longer positions a thumb — the
+   * fields are typed — but `termForMonthly` and `downForMonthly` still use its
+   * ends to recognise "they asked for the extreme" and answer with the extreme
+   * rather than one step inside it.
+   */
   const monthlyTravel = useMemo(
     () => monthlySliderRange(quote.outTheDoorCents, solveFor, downCents, termMonths, bounds),
     [quote.outTheDoorCents, solveFor, downCents, termMonths, bounds]
   );
-  const monthlyThumb = monthlyThumbFor(
-    quote.outTheDoorCents,
-    downCents,
-    termMonths,
-    monthlyTravel
-  );
 
-  /** Dragging the payment derives whichever of the pair is not pinned. */
+  /** A typed payment derives whichever of the pair is not pinned. */
   function setMonthly(monthlyCents: number) {
     if (solveFor === "term") {
       setTermMonths(
@@ -291,109 +294,62 @@ export function PlanPicker({
       </div>
 
       <div className="px-4 pb-5 pt-5 sm:px-6">
-        {/* ------------------------------------------------ cash down */}
-        {solveFor !== "down" && (
-          <div className="mb-4">
-            <div className="flex items-baseline justify-between gap-4">
-              <label
-                htmlFor="down"
-                className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-              >
-                Cash down
-              </label>
-              <span className="tnum font-mono text-[0.875rem] font-semibold">
-                {formatMoney(downCents)}
-              </span>
-            </div>
-            <input
+        {/* ---------------------------------------------- the inputs */}
+        {/* Typed, not dragged. A slider is a guess: it takes several attempts
+            to land on $5,030 and cannot be aimed at all on a phone. People
+            arrive knowing their number — "I have four thousand", "I can do
+            four hundred a month" — so the fastest control is the one that
+            lets them say it. Values commit on blur or Enter, and are clamped
+            to the range printed underneath rather than silently rejected. */}
+        <div className="grid grid-cols-2 gap-3">
+          {solveFor !== "down" && (
+            <NumberField
               id="down"
-              type="range"
-              min={bounds.min}
-              max={bounds.max}
-              step={DOWN_STEP}
-              value={downCents}
-              onChange={(e) => setDownCents(Number(e.target.value))}
-              aria-valuetext={formatMoney(downCents)}
-              className="mt-1.5"
+              label="Cash down"
+              prefix="$"
+              value={wholeDollars(downCents)}
+              hint={`${formatMoney(bounds.min)} – ${formatMoney(bounds.max)}`}
+              onCommit={(raw) => {
+                const cents = dollarsToCents(raw);
+                if (cents !== null) setDownCents(clampDown(cents, bounds));
+              }}
             />
-            <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-              <span>{formatMoney(bounds.min)} min · 18%</span>
-              <span>{formatMoney(bounds.max)}</span>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* --------------------------------------------------- months */}
-        {solveFor !== "term" && (
-          <div className="mb-4">
-            <div className="flex items-baseline justify-between gap-4">
-              <label
-                htmlFor="term"
-                className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-              >
-                Months to pay
-              </label>
-              <span className="tnum font-mono text-[0.875rem] font-semibold">
-                {termMonths}
-              </span>
-            </div>
-            <input
+          {solveFor !== "term" && (
+            <NumberField
               id="term"
-              type="range"
-              min={MIN_TERM_MONTHS}
-              max={MAX_TERM_MONTHS}
-              step={1}
-              value={termMonths}
-              onChange={(e) => setTermMonths(clampTerm(Number(e.target.value)))}
-              aria-valuetext={`${termMonths} months`}
-              className="mt-1.5"
+              label="Months to pay"
+              suffix="mo"
+              value={String(termMonths)}
+              hint={`${MIN_TERM_MONTHS} – ${MAX_TERM_MONTHS}`}
+              onCommit={(raw) => {
+                const months = Number(raw.trim());
+                if (Number.isFinite(months)) setTermMonths(clampTerm(months));
+              }}
             />
-            <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-              <span>{MIN_TERM_MONTHS} mo</span>
-              <span>{MAX_TERM_MONTHS} mo</span>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* -------------------------------------------- monthly payment */}
-        {solveFor !== "monthly" && (
-          <div className="mb-4">
-            <div className="flex items-baseline justify-between gap-4">
-              <label
-                htmlFor="monthly"
-                className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
-              >
-                Payment I can make
-              </label>
-              <span
-                className={`tnum font-mono text-[0.875rem] font-semibold ${settlingClass}`}
-              >
-                {plan
-                  ? formatMoney(plan.monthlyPaymentCents, { cents: true })
-                  : "—"}
-              </span>
-            </div>
-            <input
+          {solveFor !== "monthly" && (
+            <NumberField
               id="monthly"
-              type="range"
-              min={monthlyTravel.min}
-              max={monthlyTravel.max}
-              step={MONTHLY_STEP}
-              value={monthlyThumb}
-              onChange={(e) => setMonthly(Number(e.target.value))}
-              aria-valuetext={
-                plan
-                  ? `${formatMoney(plan.monthlyPaymentCents, { cents: true })} per month`
-                  : undefined
-              }
-              className="mt-1.5"
+              label="Payment I can make"
+              prefix="$"
+              // Shows what the plan ACTUALLY costs, not what was typed. Asking
+              // for $400 over a whole number of months lands on $396.43, and
+              // echoing the request back would be inventing a price.
+              value={wholeDollars(plan?.monthlyPaymentCents ?? 0)}
+              hint={`${formatMoney(monthlyRange.min)} – ${formatMoney(monthlyRange.max)}`}
+              onCommit={(raw) => {
+                const cents = dollarsToCents(raw);
+                if (cents === null) return;
+                setMonthly(
+                  Math.min(monthlyRange.max, Math.max(monthlyRange.min, cents))
+                );
+              }}
             />
-            <div className="tnum flex justify-between font-mono text-[0.6875rem] text-ink-faint">
-              <span>{formatMoney(monthlyRange.min, { cents: true })}/mo</span>
-              <span>{formatMoney(monthlyRange.max, { cents: true })}/mo</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {belowFloor && (
           <p
@@ -553,3 +509,84 @@ function ComparisonNote({
   );
 }
 
+/** Integer cents as a plain editable dollar string. No symbol, no commas. */
+function wholeDollars(cents: number): string {
+  return String(Math.round(cents / 100));
+}
+
+/**
+ * A number you type.
+ *
+ * Holds its own draft while focused so typing is never fought — a controlled
+ * input that reformatted on every keystroke would eat the second character of
+ * "40" the moment "4" clamped to the minimum. The draft commits on blur or
+ * Enter, and resyncs from the canonical value afterwards, which is how the
+ * member sees what their input actually resolved to.
+ */
+function NumberField({
+  id,
+  label,
+  value,
+  hint,
+  prefix,
+  suffix,
+  onCommit,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  hint: string;
+  prefix?: string;
+  suffix?: string;
+  onCommit: (raw: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useState(false);
+  const hintId = useId();
+
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="block font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint"
+      >
+        {label}
+      </label>
+      <div className="mt-1 flex items-baseline border border-rule-strong bg-paper px-2 py-1.5 focus-within:border-accent">
+        {prefix && (
+          <span className="font-mono text-[0.875rem] text-ink-faint">{prefix}</span>
+        )}
+        <input
+          id={id}
+          type="text"
+          inputMode="decimal"
+          value={draft}
+          aria-describedby={hintId}
+          onFocus={() => setEditing(true)}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            setEditing(false);
+            onCommit(draft);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          className="tnum w-full bg-transparent font-mono text-[1.0625rem] font-semibold text-ink outline-none"
+        />
+        {suffix && (
+          <span className="font-mono text-[0.75rem] text-ink-faint">{suffix}</span>
+        )}
+      </div>
+      <p
+        id={hintId}
+        className="tnum mt-1 font-mono text-[0.625rem] text-ink-faint"
+      >
+        {hint}
+      </p>
+    </div>
+  );
+}
