@@ -40,6 +40,25 @@ export const TX_DEAL_COSTS: DealCosts = { ...DEFAULT_DEAL_COSTS };
  * run under Chapter 520, F.S., which has its own rate structure keyed to model
  * year — confirm the cap for a 2014 vehicle before quoting 22% in Florida.
  */
+/**
+ * ⚠️ THE COUNTY IS WRONG AND IT IS A MONEY BUG, NOT A LABEL.
+ *
+ * This profile carries Orange County's 0.5% discretionary surtax. The dealer's
+ * office is at 5624 S Orange Blossom Trail, Intercession City FL 33848 — the
+ * road is called Orange Blossom Trail, but that address is in OSCEOLA County,
+ * whose surtax is a different rate. Every out-the-door price quoted from this
+ * profile is therefore suspect, including the $12,831.70 the tests pin.
+ *
+ * Worse, a per-state profile is the wrong SHAPE for this tax. Florida's
+ * discretionary surtax on a motor vehicle follows the county where the vehicle
+ * will be registered — the buyer's residence — not where the dealer stands. Two
+ * buyers at the same desk owe different surtax, so the rate cannot be a
+ * property of the listing at all. It belongs to the deal, once the buyer's
+ * address is known.
+ *
+ * Do not "fix" this by editing the rate. Confirm the correct surtax against the
+ * current DR-15DSS, then move the surtax input from the listing to the buyer.
+ */
 export const FL_ORANGE_DEAL_COSTS: DealCosts = {
   salesTaxRate: 0.06,
   countySurtaxRate: 0.005,
@@ -47,7 +66,7 @@ export const FL_ORANGE_DEAL_COSTS: DealCosts = {
   docFeeCents: 699_00,
   titleRegCents: 400_00,
   reconEstimateCents: 900_00,
-  /** Local Orlando pickup, not a multi-state haul off an auction block. */
+  /** Local Central Florida pickup, not a multi-state haul off an auction block. */
   transportCents: 150_00,
   /**
    * No auction buy fee on a private-party car. This is a pre-purchase

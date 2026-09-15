@@ -59,13 +59,28 @@ export default async function AuctionAccessPage() {
           </p>
 
           <div className="mt-8 max-w-xl border border-rule-strong bg-paper-raised">
-            <p className="border-b border-rule bg-paper-sunken px-4 py-2 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
-              {/* Copart's mark is used with written permission from Copart.
-                  Keep that permission on file — a licence to BID at Copart is
-                  not a licence to use their trademark, and the two are granted
-                  separately. If permission lapses, this becomes plain text. */}
-              Licensed to bid at Copart
-            </p>
+            {/* Auction marks are used with the permission the operator holds.
+                Keep that permission on file for EACH house — a licence to BID
+                at Copart or ADESA is not a licence to use their trademark, and
+                the two are granted separately by different parties. If a
+                permission lapses, drop that logo and leave the plain text,
+                which is a factual statement and needs nobody's consent. */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule bg-paper-sunken px-4 py-2.5">
+              <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                Licensed to bid at
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/adesa.png"
+                alt="ADESA"
+                width={467}
+                height={211}
+                className="h-4 w-auto"
+              />
+              <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
+                Copart
+              </span>
+            </div>
             <div className="px-4 py-4">
               <p className="tnum font-display text-4xl font-extrabold leading-none tracking-tight text-brass">
                 {formatMoney(AUCTION_ACCESS_FEE_CENTS)}
@@ -137,24 +152,53 @@ export default async function AuctionAccessPage() {
 
       {/* ---------------------------------------------------------- office */}
       {address && (
-        <section>
+        <section className="border-t border-rule-strong">
           <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight">
-              We do this in person
-            </h2>
-            <p className="mt-3 max-w-2xl font-serif text-[0.9375rem] leading-snug text-ink-muted">
-              Once you&rsquo;re in, you book a time and come to the office. We
-              go through what you actually need, what it should cost, and the
-              number we stop at &mdash; before anything is bid on.
-            </p>
-            <address className="mt-4 not-italic">
-              <p className="font-display text-lg font-bold tracking-tight">
-                {dealerName}
-              </p>
-              <p className="font-mono text-[0.875rem] text-ink-muted">
-                {address}
-              </p>
-            </address>
+            <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
+              <div>
+                <h2 className="font-display text-2xl font-extrabold tracking-tight">
+                  We do this in person
+                </h2>
+                <p className="mt-3 font-serif text-[0.9375rem] leading-snug text-ink-muted">
+                  Once you&rsquo;re in, you book a time and come to the office.
+                  We go through what you actually need, what it should cost,
+                  and the number we stop at &mdash; before anything is bid on.
+                </p>
+                <address className="mt-5 not-italic">
+                  <p className="font-display text-lg font-bold tracking-tight">
+                    {dealerName}
+                  </p>
+                  <p className="font-mono text-[0.875rem] leading-relaxed text-ink-muted">
+                    {dealer?.streetAddress}
+                    <br />
+                    {dealer?.city}, {dealer?.state} {dealer?.postalCode}
+                  </p>
+                </address>
+                <p className="mt-4">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] underline underline-offset-4 hover:text-accent"
+                  >
+                    Open in Google Maps →
+                  </a>
+                </p>
+              </div>
+
+              {/* Keyless embed: the `output=embed` form needs no Maps API key,
+                  so there is no secret to leak and nothing to bill. Lazy so it
+                  costs nothing on a phone that never scrolls this far. */}
+              <div className="border border-rule-strong bg-paper-raised">
+                <iframe
+                  title={`Map to ${dealerName}, ${address}`}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="aspect-[4/3] w-full border-0"
+                />
+              </div>
+            </div>
           </div>
         </section>
       )}

@@ -54,10 +54,11 @@ export const DEALERS: Dealer[] = [
     legalName: "Orlando partner dealer — not yet onboarded",
     dbaName: "MGM Autobroker",
     state: "FL",
-    city: "Orlando",
-    streetAddress: "5624 S. Orange Blossom Trail",
-    // TODO: confirm the ZIP before this reaches a receipt or a map link.
-    postalCode: undefined,
+    // Intercession City, NOT Orlando — and that is a tax question, not a
+    // cosmetic one. See the note on FL_ORANGE_DEAL_COSTS in deal-costs.ts.
+    city: "Intercession City",
+    streetAddress: "5624 S Orange Blossom Trail",
+    postalCode: "33848",
     // A connected account exists (test mode), but nothing else does: no licence
     // on file, and Stripe has not enabled charges because onboarding is
     // unfinished. This dealer cannot sell, cannot hold paper, and cannot take a
