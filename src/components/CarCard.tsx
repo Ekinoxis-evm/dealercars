@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { formatMoney } from "@/lib/finance";
 import { carTitle, type CarCardData } from "@/lib/inventory-card";
+import { localePath, type Locale } from "@/i18n";
+import { useI18n } from "@/i18n/client";
 
 /**
  * One car in the grid.
@@ -14,13 +18,14 @@ import { carTitle, type CarCardData } from "@/lib/inventory-card";
  * disclosure on every card in the grid; the per-car page is where payments and
  * their disclosure belong.
  */
-export function CarCard({ car }: { car: CarCardData }) {
+export function CarCard({ car, locale }: { car: CarCardData; locale: Locale }) {
+  const { dict } = useI18n();
   const title = carTitle(car);
   const sellable = car.status === "available" || car.status === "reserved";
 
   return (
     <article className="flex flex-col border border-rule-strong bg-paper-raised">
-      <Link href={`/cars/${car.id}`} className="group flex flex-1 flex-col">
+      <Link href={localePath(locale, `/cars/${car.id}`)} className="group flex flex-1 flex-col">
         <div className="relative">
           {car.photoUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -33,13 +38,13 @@ export function CarCard({ car }: { car: CarCardData }) {
           ) : (
             <div className="flex aspect-[4/3] w-full items-center justify-center border-b border-dashed border-rule bg-paper-sunken">
               <p className="px-4 text-center font-serif text-[0.8125rem] text-ink-faint">
-                Photographs being taken
+                {dict.card.photosComing}
               </p>
             </div>
           )}
           {car.status !== "available" && (
             <span className="absolute left-0 top-0 bg-paper px-2 py-1 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-accent">
-              {STATUS_LABEL[car.status]}
+              {dict.card.status[car.status]}
             </span>
           )}
         </div>
@@ -65,14 +70,16 @@ export function CarCard({ car }: { car: CarCardData }) {
             </div>
             <div className="flex gap-1">
               <dt className="sr-only">Durability score</dt>
-              <dd>{Math.round(car.durability * 100)}/100 durability</dd>
+              <dd>
+                {Math.round(car.durability * 100)}/100 {dict.card.durability}
+              </dd>
             </div>
           </dl>
 
           <div className="mt-auto pt-4">
             {car.outTheDoorCents === null ? (
               <p className="font-serif text-[0.875rem] text-ink-muted">
-                Not priced for {car.state} yet
+                {dict.card.notPriced(car.state)}
               </p>
             ) : (
               <>
@@ -80,9 +87,9 @@ export function CarCard({ car }: { car: CarCardData }) {
                   {formatMoney(car.outTheDoorCents, { cents: true })}
                 </p>
                 <p className="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-faint">
-                  Out the door ·{" "}
+                  {dict.card.outTheDoor} ·{" "}
                   <span className="text-accent">
-                    {sellable ? "0% APR plans" : "not for sale yet"}
+                    {sellable ? dict.card.zeroApr : dict.card.notForSale}
                   </span>
                 </p>
               </>
@@ -93,11 +100,3 @@ export function CarCard({ car }: { car: CarCardData }) {
     </article>
   );
 }
-
-const STATUS_LABEL: Record<CarCardData["status"], string> = {
-  sourced: "On the way",
-  acquired: "In recon",
-  available: "Available",
-  reserved: "Reserved",
-  sold: "Sold",
-};

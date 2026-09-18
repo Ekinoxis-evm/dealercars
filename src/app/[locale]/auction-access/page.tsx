@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { formatMoney } from "@/lib/finance";
 import { loadDealer } from "@/lib/dealer-store";
 import { OPERATING_DEALER_ID, serviceBlockReason } from "@/lib/dealers";
-import {
-  AUCTION_ACCESS_FEE_CENTS,
-  AUCTION_ACCESS_EXCLUDES,
-  AUCTION_ACCESS_INCLUDES,
-} from "@/lib/auction-access";
+import { AUCTION_ACCESS_FEE_CENTS } from "@/lib/auction-access";
 import { AuctionAccessCheckout } from "@/components/privy-deferred";
+import { getDictionary, isLocale } from "@/i18n";
+import { notFound } from "next/navigation";
 
 /**
  * Auction Access — the brokerage product.
@@ -21,13 +19,25 @@ import { AuctionAccessCheckout } from "@/components/privy-deferred";
  */
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Auction Access — bid at dealer-only auctions",
-  description:
-    "You can't register to bid at Copart. We can. A flat fee puts our licence and our judgement behind your next car, and we bid for you.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = getDictionary(isLocale(locale) ? locale : "es");
+  return { title: t.auction.metaTitle, description: t.auction.metaDescription };
+}
 
-export default async function AuctionAccessPage() {
+export default async function AuctionAccessPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
+  const t = getDictionary(locale);
+
   const dealer = await loadDealer(OPERATING_DEALER_ID);
   const dealerName = dealer?.dbaName ?? dealer?.legalName ?? "MGM Autobroker";
   const address = dealer?.streetAddress
@@ -44,18 +54,15 @@ export default async function AuctionAccessPage() {
       <section className="border-b border-rule-strong">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
           <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-accent">
-            {dealerName} · Auction Access
+            {dealerName} · {t.auction.eyebrow}
           </p>
           <h1 className="mt-3 max-w-3xl font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
-            You can&rsquo;t bid at Copart.
+            {t.auction.title1}
             <br />
-            <span className="text-accent">We hold the licence that can.</span>
+            <span className="text-accent">{t.auction.title2}</span>
           </h1>
           <p className="mt-4 max-w-2xl font-serif text-lg leading-snug text-ink-muted">
-            Wholesale auctions are closed to the public. For a flat{" "}
-            {formatMoney(AUCTION_ACCESS_FEE_CENTS)} we put our dealer licence
-            and our judgement behind your next car: we shortlist, we read the
-            condition reports, and we bid to a ceiling you set.
+            {t.auction.lede(formatMoney(AUCTION_ACCESS_FEE_CENTS))}
           </p>
 
           <div className="mt-8 max-w-xl border border-rule-strong bg-paper-raised">
@@ -67,7 +74,7 @@ export default async function AuctionAccessPage() {
                 which is a factual statement and needs nobody's consent. */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule bg-paper-sunken px-4 py-2.5">
               <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
-                Licensed to bid at
+                {t.auction.licensedToBid}
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -86,14 +93,13 @@ export default async function AuctionAccessPage() {
                 {formatMoney(AUCTION_ACCESS_FEE_CENTS)}
               </p>
               <p className="mt-1 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-ink-faint">
-                One-off · per car hunt · non-refundable
+                {t.auction.oneOff}
               </p>
 
               <div className="mt-4">
                 {blockReason ? (
                   <p className="border-l-2 border-accent bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-snug text-ink-muted">
-                    {blockReason} Auction Access can&rsquo;t be bought until
-                    that is sorted.
+                    {blockReason} {t.auction.blockedTail}
                   </p>
                 ) : (
                   <AuctionAccessCheckout
@@ -113,10 +119,10 @@ export default async function AuctionAccessPage() {
           <div className="grid gap-8 md:grid-cols-2">
             <div>
               <h2 className="font-display text-2xl font-extrabold tracking-tight">
-                What the fee covers
+                {t.auction.covers}
               </h2>
               <ul className="mt-4 space-y-2">
-                {AUCTION_ACCESS_INCLUDES.map((item) => (
+                {t.auction.includes.map((item) => (
                   <li
                     key={item}
                     className="border-l-2 border-accent pl-3 font-serif text-[0.9375rem] leading-snug text-ink-muted"
@@ -128,10 +134,10 @@ export default async function AuctionAccessPage() {
             </div>
             <div>
               <h2 className="font-display text-2xl font-extrabold tracking-tight">
-                What it doesn&rsquo;t
+                {t.auction.doesnt}
               </h2>
               <ul className="mt-4 space-y-2">
-                {AUCTION_ACCESS_EXCLUDES.map((item) => (
+                {t.auction.excludes.map((item) => (
                   <li
                     key={item}
                     className="border-l-2 border-rule pl-3 font-serif text-[0.9375rem] leading-snug text-ink-muted"
@@ -141,9 +147,7 @@ export default async function AuctionAccessPage() {
                 ))}
               </ul>
               <p className="mt-4 font-serif text-[0.8125rem] leading-snug text-ink-muted">
-                Said here rather than in a receipt afterwards. You can pay cash
-                for whatever we win or finance it with us at 0% &mdash; the fee
-                is the same either way, and buying it obliges you to neither.
+                {t.auction.eitherWay}
               </p>
             </div>
           </div>
@@ -157,12 +161,10 @@ export default async function AuctionAccessPage() {
             <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
               <div>
                 <h2 className="font-display text-2xl font-extrabold tracking-tight">
-                  We do this in person
+                  {t.auction.inPerson}
                 </h2>
                 <p className="mt-3 font-serif text-[0.9375rem] leading-snug text-ink-muted">
-                  Once you&rsquo;re in, you book a time and come to the office.
-                  We go through what you actually need, what it should cost,
-                  and the number we stop at &mdash; before anything is bid on.
+                  {t.auction.inPersonLede}
                 </p>
                 <address className="mt-5 not-italic">
                   <p className="font-display text-lg font-bold tracking-tight">
@@ -181,7 +183,7 @@ export default async function AuctionAccessPage() {
                     rel="noopener noreferrer"
                     className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] underline underline-offset-4 hover:text-accent"
                   >
-                    Open in Google Maps →
+                    {t.auction.openInMaps}
                   </a>
                 </p>
               </div>

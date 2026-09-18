@@ -1,5 +1,9 @@
+"use client";
+
 import type { PaymentPlan } from "@/lib/types";
 import { formatBps, formatMoney } from "@/lib/finance";
+import { useI18n } from "@/i18n/client";
+import type { Dictionary } from "@/i18n";
 
 /**
  * Regulation Z (12 CFR 1026.24) advertising disclosure.
@@ -12,8 +16,14 @@ import { formatBps, formatMoney } from "@/lib/finance";
  *
  * A zero rate does NOT remove the obligation. An interest-free plan payable in
  * more than four installments is still a credit sale (12 CFR 1026.2(a)(17)),
- * "$4,000 down" and "$245/month" are still trigger terms, and the APR that has
- * to be stated is 0.00%. The disclosure gets better, not optional.
+ * "$4,000 de entrada" and "$245/mes" are still trigger terms, and the APR that
+ * has to be stated is 0.00%. The disclosure gets better, not optional.
+ *
+ * IT IS TRANSLATED, and that is a compliance property rather than a courtesy.
+ * The disclosure must be clear and conspicuous, and one a reader cannot read is
+ * neither — so a page advertising in Spanish carries its credit terms in
+ * Spanish. The figures are formatted from the plan itself and never restated in
+ * copy, so no translation can change a number.
  *
  * Note what is NOT a trigger term: an out-the-door cash price, and the APR on
  * its own. That is deliberate headroom, and the inventory cards rely on it —
@@ -27,6 +37,8 @@ export function RegZDisclosure({
   plan: PaymentPlan;
   className?: string;
 }) {
+  const { dict } = useI18n();
+
   // A cash price states no down payment and no periodic payment, so it trips
   // no trigger term and Reg Z advertising disclosure does not attach.
   if (plan.kind === "cash") return null;
@@ -36,35 +48,33 @@ export function RegZDisclosure({
       className={`tnum border-t border-rule pt-2 font-serif text-[0.8125rem] leading-relaxed text-ink-muted ${className}`}
     >
       <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-        Credit terms&nbsp;·&nbsp;
+        {dict.regZ.label}&nbsp;·&nbsp;
       </span>
-      {planTerms(plan)} Credit extended by DealerCars, a licensed motor vehicle
-      dealer and retail installment seller. Subject to verification of income,
-      residence, and down payment.
+      {planTerms(plan, dict)} {dict.regZ.creditor}
     </p>
   );
 }
 
 /** The interest-free product. The final payment differs by a few cents. */
-function planTerms(plan: PaymentPlan): string {
+function planTerms(plan: PaymentPlan, dict: Dictionary): string {
+  const t = dict.regZ;
+  const money = (cents: number) => formatMoney(cents, { cents: true });
+
   const repayment =
     plan.finalPaymentCents === plan.monthlyPaymentCents
-      ? `${plan.termMonths} monthly payments of ${formatMoney(plan.monthlyPaymentCents, { cents: true })}`
-      : `${plan.termMonths - 1} monthly payments of ${formatMoney(
-          plan.monthlyPaymentCents,
-          { cents: true }
-        )} and a final payment of ${formatMoney(plan.finalPaymentCents, {
-          cents: true,
-        })}`;
+      ? `${t.monthlyPaymentsOf(plan.termMonths)} ${money(plan.monthlyPaymentCents)}`
+      : `${t.monthlyPaymentsOf(plan.termMonths - 1)} ${money(
+          plan.monthlyPaymentCents
+        )} ${t.andFinalPayment} ${money(plan.finalPaymentCents)}`;
 
   const financeCharge =
     plan.financeChargeCents === 0
-      ? "no finance charge"
-      : `finance charge ${formatMoney(plan.financeChargeCents, { cents: true })}`;
+      ? t.noFinanceCharge
+      : `${t.financeCharge} ${money(plan.financeChargeCents)}`;
 
   return (
-    `${formatMoney(plan.downCents)} cash down; annual percentage rate ` +
-    `${formatBps(plan.aprBps)}; ${repayment}; total of payments ` +
-    `${formatMoney(plan.totalOfPaymentsCents, { cents: true })}; ${financeCharge}.`
+    `${formatMoney(plan.downCents)} ${t.cashDown}; ${t.apr} ` +
+    `${formatBps(plan.aprBps)}; ${repayment}; ${t.totalOfPayments} ` +
+    `${money(plan.totalOfPaymentsCents)}; ${financeCharge}.`
   );
 }

@@ -8,6 +8,8 @@ import { ZERO_APR_BPS } from "@/lib/types";
 import type { CarCardData } from "@/lib/inventory-card";
 import { carTitle } from "@/lib/inventory-card";
 import { RegZDisclosure } from "@/components/RegZDisclosure";
+import { localePath, type Locale } from "@/i18n";
+import { useI18n } from "@/i18n/client";
 
 /**
  * Shop by what you can actually pay.
@@ -38,7 +40,15 @@ import { RegZDisclosure } from "@/components/RegZDisclosure";
  */
 const TERM_MONTHS = 36;
 
-export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
+export function BudgetCalculator({
+  cars = [],
+  locale,
+}: {
+  cars?: CarCardData[];
+  locale: Locale;
+}) {
+  const { dict } = useI18n();
+  const p = (path: string) => localePath(locale, path);
   const [downDollars, setDownDollars] = useState(2500);
   const [monthlyDollars, setMonthlyDollars] = useState(400);
   const [state, setState] = useState("FL");
@@ -76,8 +86,9 @@ export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
     <div className="border border-rule-strong bg-paper-raised">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule bg-paper-sunken px-4 py-2 sm:px-6">
         <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
-          Worksheet · <span className="text-accent">0% APR — no interest</span> ·{" "}
-          {TERM_MONTHS} months · tax, title &amp; fees included
+          {dict.budget.worksheet} ·{" "}
+          <span className="text-accent">{dict.budget.noInterest}</span> ·{" "}
+          {TERM_MONTHS} {dict.plan.monthsWord} · {dict.budget.feesIncluded}
         </p>
         <div className="flex items-center gap-1">
           {SUPPORTED_STATES.map((s) => (
@@ -107,7 +118,7 @@ export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
                 htmlFor={downId}
                 className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-muted"
               >
-                Cash down today
+                {dict.budget.cashDownToday}
               </label>
               <output
                 htmlFor={downId}
@@ -139,7 +150,7 @@ export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
                 htmlFor={monthlyId}
                 className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink-muted"
               >
-                Monthly ceiling
+                {dict.budget.monthlyCeiling}
               </label>
               <output
                 htmlFor={monthlyId}
@@ -166,9 +177,7 @@ export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
           </div>
 
           <p className="font-serif text-[0.875rem] italic leading-relaxed text-ink-muted">
-            A ceiling, not a wish. We solve backwards from what you can keep
-            paying — tax, title, registration and doc fee already counted. None
-            of it goes to interest.
+            {dict.budget.ceilingNote}
           </p>
         </div>
 
@@ -176,16 +185,14 @@ export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
         <div className="tnum flex flex-col justify-center gap-6 px-4 py-6 sm:px-6">
           <div>
             <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-accent">
-              You can shop up to
+              {dict.budget.canShopUpTo}
             </p>
             <p className="font-display text-5xl font-extrabold leading-none tracking-tight text-brass">
               {formatMoney(budget.maxOutTheDoorCents)}
             </p>
             <p className="mt-2 font-serif text-[0.875rem] leading-relaxed text-ink-muted">
-              Out the door, in {state} &mdash; the whole price, not a sticker
-              you add fees to later. That is a{" "}
-              {formatMoney(budget.maxRetailPriceCents)} car once tax, title and
-              the doc fee come out of it.
+              {dict.budget.outTheDoorIn(state)}{" "}
+              {formatMoney(budget.maxRetailPriceCents)} {dict.budget.carOnce}
             </p>
           </div>
 
@@ -193,35 +200,33 @@ export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
             {cars.length === 0 ? (
               <p className="font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
                 <Link
-                  href="/cars"
+                  href={p("/cars")}
                   className="underline underline-offset-4 hover:text-accent"
                 >
-                  See what is on the lot →
+                  {dict.budget.seeWhatsOnLot}
                 </Link>
               </p>
             ) : fits.length === 0 ? (
               <p className="font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-                Nothing on the lot fits that budget today. The lot turns over
-                every week &mdash;{" "}
+                {dict.budget.nothingFits}{" "}
                 <Link
-                  href="/cars"
+                  href={p("/cars")}
                   className="underline underline-offset-4 hover:text-accent"
                 >
-                  see everything we have
+                  {dict.budget.seeEverything}
                 </Link>
                 .
               </p>
             ) : (
               <>
                 <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-                  {fits.length} {fits.length === 1 ? "car" : "cars"} on the lot
-                  fit
+                  {dict.budget.carsFit(fits.length)}
                 </p>
                 <ul className="mt-2 divide-y divide-rule border-y border-rule">
                   {fits.slice(0, 4).map((car) => (
                     <li key={car.id}>
                       <Link
-                        href={`/cars/${car.id}`}
+                        href={p(`/cars/${car.id}`)}
                         className="flex items-baseline justify-between gap-4 py-2 hover:text-accent"
                       >
                         <span className="font-serif text-[0.9375rem] leading-snug">
@@ -239,10 +244,10 @@ export function BudgetCalculator({ cars = [] }: { cars?: CarCardData[] }) {
                 </ul>
                 <p className="mt-3">
                   <Link
-                    href="/cars"
+                    href={p("/cars")}
                     className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] underline underline-offset-4 hover:text-accent"
                   >
-                    See the whole lot →
+                    {dict.budget.seeWholeLot}
                   </Link>
                 </p>
               </>

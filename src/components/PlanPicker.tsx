@@ -20,6 +20,7 @@ import {
 } from "@/lib/payment-slider";
 import type { PriceQuote, RetailListing } from "@/lib/types";
 import { RegZDisclosure } from "./RegZDisclosure";
+import { useI18n } from "@/i18n/client";
 
 /**
  * Build a payment on one specific car.
@@ -67,6 +68,7 @@ export function PlanPicker({
   listing: RetailListing;
   initialQuote: PriceQuote;
 }) {
+  const { dict } = useI18n();
   const { authenticated, login } = usePrivy();
 
   // The car's price fixes the whole range. Computed from the initial quote,
@@ -206,7 +208,7 @@ export function PlanPicker({
         setError(e.message);
         setReasons(e.reasons ?? null);
       } else {
-        setError("Something went wrong starting checkout.");
+        setError(dict.plan.checkoutError);
       }
       setLoading(false);
     }
@@ -216,10 +218,11 @@ export function PlanPicker({
     <section className="border border-rule-strong bg-paper-raised">
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-rule-strong px-4 py-2.5 sm:px-6">
         <h2 className="font-display text-base font-extrabold tracking-tight">
-          Build your payment
+          {dict.plan.heading}
         </h2>
         <p className="tnum font-mono text-[0.75rem] text-ink-muted">
-          {formatMoney(quote.outTheDoorCents, { cents: true })} out the door ·{" "}
+          {formatMoney(quote.outTheDoorCents, { cents: true })}{" "}
+          {dict.plan.outTheDoorSuffix} ·{" "}
           <span className="text-accent">0% APR</span>
         </p>
       </header>
@@ -230,14 +233,14 @@ export function PlanPicker({
           the wrong question for anyone who already knows their payment. */}
       <fieldset className="px-4 pt-4 sm:px-6">
         <legend className="font-mono text-[0.625rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-          Work out my
+          {dict.plan.workOutMy}
         </legend>
         <div className="mt-1.5 flex gap-1.5">
           {(
             [
-              ["monthly", "Payment"],
-              ["term", "Months"],
-              ["down", "Down"],
+              ["monthly", dict.plan.payment],
+              ["term", dict.plan.months],
+              ["down", dict.plan.down],
             ] as [SolveFor, string][]
           ).map(([value, label]) => {
             const selected = value === solveFor;
@@ -274,20 +277,22 @@ export function PlanPicker({
           </span>
           <span className="font-mono text-[0.8125rem] uppercase tracking-[0.08em] text-ink-muted">
             {solveFor === "term"
-              ? "months"
+              ? dict.plan.monthsUnit
               : solveFor === "down"
-                ? "down"
-                : `/mo × ${termMonths}`}
+                ? dict.plan.downUnit
+                : dict.plan.perMonthTimes(termMonths)}
           </span>
         </p>
         {plan && (
           <p className="tnum mt-1.5 font-mono text-[0.75rem] text-ink-muted">
-            {solveFor !== "down" && `${formatMoney(plan.downCents)} down · `}
+            {solveFor !== "down" &&
+              `${formatMoney(plan.downCents)} ${dict.plan.downUnit} · `}
             {solveFor !== "monthly" &&
               `${formatMoney(plan.monthlyPaymentCents, { cents: true })}/mo · `}
-            {solveFor !== "term" && `${plan.termMonths} months · `}
+            {solveFor !== "term" && `${plan.termMonths} ${dict.plan.monthsWord} · `}
             <span className="text-accent">
-              {formatMoney(plan.financeChargeCents, { cents: true })} interest
+              {formatMoney(plan.financeChargeCents, { cents: true })}{" "}
+              {dict.plan.interest}
             </span>
           </p>
         )}
@@ -305,7 +310,7 @@ export function PlanPicker({
           {solveFor !== "down" && (
             <NumberField
               id="down"
-              label="Cash down"
+              label={dict.plan.downLabel}
               prefix="$"
               value={wholeDollars(downCents)}
               hint={`${formatMoney(bounds.min)} – ${formatMoney(bounds.max)}`}
@@ -319,8 +324,8 @@ export function PlanPicker({
           {solveFor !== "term" && (
             <NumberField
               id="term"
-              label="Months to pay"
-              suffix="mo"
+              label={dict.plan.termLabel}
+              suffix={dict.plan.monthsShort}
               value={String(termMonths)}
               hint={`${MIN_TERM_MONTHS} – ${MAX_TERM_MONTHS}`}
               onCommit={(raw) => {
@@ -333,7 +338,7 @@ export function PlanPicker({
           {solveFor !== "monthly" && (
             <NumberField
               id="monthly"
-              label="Payment I can make"
+              label={dict.plan.monthlyLabel}
               prefix="$"
               // Shows what the plan ACTUALLY costs, not what was typed. Asking
               // for $400 over a whole number of months lands on $396.43, and
@@ -356,8 +361,7 @@ export function PlanPicker({
             role="alert"
             className="tnum mt-3 border-l-2 border-accent bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-snug text-ink-muted"
           >
-            This car needs at least{" "}
-            {formatMoney(quote.minDownCents, { cents: true })} down.
+            {dict.plan.belowFloor(formatMoney(quote.minDownCents, { cents: true }))}
           </p>
         )}
 
@@ -369,13 +373,13 @@ export function PlanPicker({
             <dl
               className={`tnum mt-5 flex flex-wrap gap-x-5 gap-y-1 border-t border-rule pt-3 font-mono text-[0.75rem] ${settlingClass}`}
             >
-              <Fact label="Financed" value={formatMoney(plan.amountFinancedCents, { cents: true })} />
-              <Fact label="Interest" value={formatMoney(plan.financeChargeCents, { cents: true })} accent />
+              <Fact label={dict.plan.financed} value={formatMoney(plan.amountFinancedCents, { cents: true })} />
+              <Fact label={dict.plan.interestRow} value={formatMoney(plan.financeChargeCents, { cents: true })} accent />
               {/* Deliberately not paired with the cash price here: the header
                   already states it, and printing the same figure twice in one
                   strip reads as a mistake rather than as the proof it is. */}
               <Fact
-                label="You pay in total"
+                label={dict.plan.youPayInTotal}
                 value={formatMoney(plan.downCents + plan.totalOfPaymentsCents, { cents: true })}
               />
             </dl>
@@ -388,10 +392,10 @@ export function PlanPicker({
                 className="flex-1 border border-accent bg-accent px-5 py-3 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-accent-ink hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {loading
-                  ? "Opening checkout…"
+                  ? dict.plan.opening
                   : authenticated
-                    ? `Pay ${formatMoney(plan.downCents)} down`
-                    : "Sign in to continue"}
+                    ? dict.plan.payDown(formatMoney(plan.downCents))
+                    : dict.plan.signIn}
               </button>
               {cash && (
                 <button
@@ -400,14 +404,15 @@ export function PlanPicker({
                   onClick={() => startCheckout("cash")}
                   className="border border-rule-strong bg-paper px-5 py-3 font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent disabled:opacity-40"
                 >
-                  Pay {formatMoney(cash.totalOfPaymentsCents, { cents: true })} in full
+                  {dict.plan.payInFull(
+                    formatMoney(cash.totalOfPaymentsCents, { cents: true })
+                  )}
                 </button>
               )}
             </div>
 
             <p className="mt-2 font-serif text-[0.8125rem] leading-snug text-ink-muted">
-              Refundable in full until you sign at your visit. Apple Pay
-              available.
+              {dict.plan.refundNote}
             </p>
 
             {/* Reg Z: a stated down payment and a stated monthly payment are
@@ -482,6 +487,7 @@ function ComparisonNote({
   downCents: number;
   termMonths: number;
 }) {
+  const { dict } = useI18n();
   const { plan, extraCostCents } = financingComparison(
     outTheDoorCents,
     downCents,
@@ -493,17 +499,13 @@ function ComparisonNote({
     <div className="mt-4 border-t border-rule pt-3">
       <p className="tnum font-serif text-[0.8125rem] leading-snug text-ink-muted">
         <span className="font-mono text-[0.625rem] uppercase tracking-[0.08em] text-ink-faint">
-          Not available here &mdash;{" "}
+          {dict.plan.comparisonLabel}{" "}
         </span>
-        at a typical {formatBps(plan.aprBps)} BHPH rate this car would be{" "}
-        <span className="font-mono text-[0.75rem] text-ink">
-          {formatMoney(plan.monthlyPaymentCents, { cents: true })}
-        </span>
-        /mo and cost{" "}
-        <span className="font-mono text-[0.75rem] text-brass">
-          {formatMoney(extraCostCents, { cents: true })}
-        </span>{" "}
-        more in interest. That is the money you keep.
+        {dict.plan.comparison(
+          formatBps(plan.aprBps),
+          formatMoney(plan.monthlyPaymentCents, { cents: true }),
+          formatMoney(extraCostCents, { cents: true })
+        )}
       </p>
     </div>
   );

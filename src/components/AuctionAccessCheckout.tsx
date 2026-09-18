@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { formatMoney } from "@/lib/finance";
 import { VisitScheduler } from "./VisitScheduler";
+import { useI18n } from "@/i18n/client";
 
 /**
  * Buy Auction Access, then book the appointment it entitles you to.
@@ -37,6 +38,7 @@ export function AuctionAccessCheckout({
   feeCents: number;
   address?: string;
 }) {
+  const { dict } = useI18n();
   const { ready, authenticated, login } = usePrivy();
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
@@ -88,7 +90,7 @@ export function AuctionAccessCheckout({
       );
       window.location.href = url;
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not start checkout.");
+      setError(e instanceof ApiError ? e.message : dict.auction.couldNotStart);
       setBusy(false);
     }
   }
@@ -102,10 +104,10 @@ export function AuctionAccessCheckout({
           className="border-l-2 border-accent bg-paper-raised px-4 py-3"
         >
           <p className="font-display text-base font-bold tracking-tight">
-            Auction Access is active on your account.
+            {dict.auction.active}
           </p>
           <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
-            Pick a time and we&rsquo;ll go through what you&rsquo;re after.
+            {dict.auction.activeLede}
           </p>
         </div>
         <VisitScheduler address={address} />
@@ -122,17 +124,16 @@ export function AuctionAccessCheckout({
         className="w-full border border-accent bg-accent px-5 py-3 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-accent-ink hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
       >
         {busy
-          ? "Opening checkout…"
+          ? dict.plan.opening
           : !ready
-            ? "Loading…"
+            ? "…"
             : authenticated
-              ? `Pay ${formatMoney(feeCents)} — get access`
-              : "Sign in to continue"}
+              ? dict.auction.buy(formatMoney(feeCents))
+              : dict.plan.signIn}
       </button>
 
       <p className="mt-2 font-serif text-[0.8125rem] leading-snug text-ink-muted">
-        One-off fee, non-refundable &mdash; it pays for the work, which happens
-        whether or not a lot is won. Apple Pay available at checkout.
+        {dict.auction.buyNote}
       </p>
 
       {status?.pending && (
@@ -140,8 +141,7 @@ export function AuctionAccessCheckout({
           role="status"
           className="mt-3 border-l-2 border-rule-strong bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-snug text-ink-muted"
         >
-          Payment received &mdash; we&rsquo;re confirming it with Stripe. Your
-          booking options appear here as soon as it clears.
+          {dict.auction.pending}
         </p>
       )}
 

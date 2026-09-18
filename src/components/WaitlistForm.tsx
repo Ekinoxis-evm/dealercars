@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/i18n/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -9,6 +10,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  * shows an inline confirmation — nothing is sent anywhere.
  */
 export function WaitlistForm() {
+  const { dict } = useI18n();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
@@ -31,11 +33,12 @@ export function WaitlistForm() {
         className="border border-rule-strong bg-paper-raised px-4 py-5 sm:px-6"
       >
         <p className="font-display text-lg font-bold tracking-tight">
-          You&rsquo;re on the list.
+          {dict.waitlist.onTheList}
         </p>
         <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-          We&rsquo;ll email <span className="font-mono text-[0.875rem] text-ink">{email.trim()}</span>{" "}
-          when a car that fits lands on the lot. Nothing else, ever.
+          {dict.waitlist.weWillEmail}{" "}
+          <span className="font-mono text-[0.875rem] text-ink">{email.trim()}</span>{" "}
+          {dict.waitlist.whenSomethingLands}
         </p>
       </div>
     );

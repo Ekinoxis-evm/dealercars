@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { formatSlotDate, groupSlotsByDay, type VisitSlot } from "@/lib/visits";
+import { useI18n } from "@/i18n/client";
 
 /**
  * Book a time at the dealer's office.
@@ -27,6 +28,7 @@ export function VisitScheduler({
   address?: string;
 }) {
   const isAuctionAccess = listingId === undefined;
+  const { dict } = useI18n();
   const { authenticated, login } = usePrivy();
 
   const [slots, setSlots] = useState<VisitSlot[] | null>(null);
@@ -58,7 +60,7 @@ export function VisitScheduler({
         setUnavailable(data.unavailableReason ?? null);
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof ApiError ? e.message : "Could not load times.");
+          setError(e instanceof ApiError ? e.message : dict.visit.couldNotLoad);
           setSlots([]);
         }
       }
@@ -66,7 +68,7 @@ export function VisitScheduler({
     return () => {
       cancelled = true;
     };
-  }, [listingId]);
+  }, [listingId, dict.visit.couldNotLoad]);
 
   async function book() {
     if (!selected) return;
@@ -87,7 +89,7 @@ export function VisitScheduler({
       });
       setBooked(selected);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not book that time.");
+      setError(e instanceof ApiError ? e.message : dict.visit.couldNotBook);
     } finally {
       setSaving(false);
     }
@@ -105,7 +107,7 @@ export function VisitScheduler({
         className="border border-rule-strong bg-paper-raised px-4 py-5 sm:px-6"
       >
         <h2 className="font-display text-lg font-extrabold tracking-tight">
-          You&rsquo;re booked in.
+          {dict.visit.booked}
         </h2>
         <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
           {formatSlotDate(booked, timeZone)} at{" "}
@@ -118,13 +120,11 @@ export function VisitScheduler({
             {zoneLabel}
           </span>
           .{" "}
-          {isAuctionAccess
-            ? "Bring your driver's licence and a rough idea of what you are after. We will agree a shortlist and a ceiling before anything is bid on."
-            : "Bring your driver's licence, proof of income, and proof of address. Nothing is committed until you sign at the lot."}
+          {isAuctionAccess ? dict.visit.bringAuction : dict.visit.bringTestDrive}
           {address && (
             <>
               {" "}
-              We are at <span className="text-ink">{address}</span>.
+              {dict.visit.weAreAt} <span className="text-ink">{address}</span>.
             </>
           )}
         </p>
@@ -136,10 +136,10 @@ export function VisitScheduler({
     <section className="border border-rule-strong bg-paper-raised">
       <header className="border-b border-rule-strong px-4 py-3 sm:px-6">
         <h2 className="font-display text-lg font-extrabold tracking-tight">
-          {isAuctionAccess ? "Book your appointment" : "Come and drive it"}
+          {isAuctionAccess ? dict.visit.bookTitle : dict.visit.driveTitle}
         </h2>
         <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
-          Times are the office&rsquo;s local clock ({zoneLabel}).
+          {dict.visit.timesIn(zoneLabel)}
           {address ? ` ${address}.` : ""}
         </p>
       </header>
@@ -153,7 +153,7 @@ export function VisitScheduler({
 
         {slots === null && (
           <p className="font-serif text-[0.875rem] text-ink-muted">
-            Loading available times&hellip;
+            {dict.visit.loading}
           </p>
         )}
 

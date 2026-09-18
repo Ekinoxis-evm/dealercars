@@ -8,6 +8,7 @@ import { loadDealer } from "@/lib/dealer-store";
 import { creditBlockReason } from "@/lib/dealers";
 import { PlanPicker, VisitScheduler } from "@/components/privy-deferred";
 import { CarGallery } from "@/components/CarGallery";
+import { getDictionary, isLocale } from "@/i18n";
 
 /**
  * Rendered on demand and cached for a minute, rather than statically generated.
@@ -23,13 +24,15 @@ export const revalidate = 60;
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const listing = await loadListing((await params).id);
-  if (!listing) return { title: "Car not found — DealerCars" };
+  const { id, locale } = await params;
+  const t = getDictionary(isLocale(locale) ? locale : "es");
+  const listing = await loadListing(id);
+  if (!listing) return { title: "404 — MGM Auto" };
   return {
-    title: `${listing.year} ${listing.make} ${listing.model} — DealerCars`,
-    description: `${listing.mileage.toLocaleString("en-US")} miles, ${listing.city}, ${listing.state}. Cash down and interest-free monthly payments.`,
+    title: `${listing.year} ${listing.make} ${listing.model} — MGM Auto`,
+    description: `${listing.mileage.toLocaleString("en-US")} ${t.car.miles}, ${listing.city}, ${listing.state}.`,
     // Deliberately no down payment or monthly figure in the description: a
     // share card is an advertisement, and a trigger term there would need the
     // Reg Z disclosure alongside it, which a meta description cannot carry.
@@ -42,9 +45,13 @@ export async function generateMetadata({
 export default async function CarPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }) {
-  const listing = await loadListing((await params).id);
+  const { id, locale } = await params;
+  if (!isLocale(locale)) notFound();
+  const t = getDictionary(locale);
+
+  const listing = await loadListing(id);
   if (!listing) notFound();
 
   const dealer = await loadDealer(listing.dealerId);
@@ -75,7 +82,7 @@ export default async function CarPage({
       {/* ------------------------------------------------------ heading */}
       <header className="border-b border-rule-strong pb-6">
         <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-ink-faint">
-          {listing.source === "street" ? "Sourced privately" : "Dealer lot"}
+          {listing.source === "street" ? t.car.sourcedPrivately : t.car.dealerLot}
           {" · "}
           {listing.city}, {listing.state}
         </p>
@@ -85,7 +92,7 @@ export default async function CarPage({
         <p className="mt-1 font-serif text-lg text-ink-muted">
           {listing.trim} &middot;{" "}
           <span className="tnum">{listing.mileage.toLocaleString("en-US")}</span>{" "}
-          miles &middot; {listing.transmission} &middot; {listing.exteriorColor} over{" "}
+          {t.car.miles} &middot; {listing.transmission} &middot; {listing.exteriorColor} over{" "}
           {listing.interiorColor}
         </p>
 
@@ -94,9 +101,7 @@ export default async function CarPage({
             <span className="tnum font-display text-2xl font-extrabold tracking-tight">
               {formatMoney(quote.outTheDoorCents, { cents: true })}
             </span>{" "}
-            <span className="text-ink-muted">
-              out the door &mdash; tax, title and fees in.
-            </span>
+            <span className="text-ink-muted">{t.car.outTheDoorTail}</span>
           </p>
         )}
       </header>
@@ -111,12 +116,10 @@ export default async function CarPage({
       {isSourced && (
         <div className="mt-6 border-l-2 border-accent bg-paper-raised px-4 py-3 sm:px-6">
           <h2 className="font-display text-base font-bold tracking-tight">
-            Not for sale yet &mdash; we are still buying it.
+            {t.car.notForSaleTitle}
           </h2>
           <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
-            Nobody can take payment on a car nobody holds title to, so checkout
-            is closed until it is ours and inspected. These are the figures for
-            when it lands.
+            {t.car.notForSaleBody}
           </p>
         </div>
       )}
@@ -137,12 +140,10 @@ export default async function CarPage({
           ) : (
             <section className="border border-rule-strong bg-paper-raised px-4 py-4 sm:px-6">
               <h2 className="font-display text-base font-extrabold tracking-tight">
-                Not priced for {listing.state} yet.
+                {t.car.notPricedTitle(listing.state)}
               </h2>
               <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
-                No tax and fee profile for that state, so any out-the-door
-                figure would be a guess. Better none than one that changes at
-                signing.
+                {t.car.notPricedBody}
               </p>
             </section>
           )}
@@ -152,29 +153,29 @@ export default async function CarPage({
 
         {/* ----------------------------------------------------- right */}
         <div className="flex flex-col gap-6">
-          <Card title="The car">
+          <Card title={t.car.theCar}>
             <dl className="tnum grid grid-cols-2 gap-x-4 px-4 py-3 font-mono text-[0.75rem] sm:px-6">
-              <Fact label="Mileage" value={`${listing.mileage.toLocaleString("en-US")} mi`} />
-              <Fact label="Durability" value={`${Math.round(listing.durability * 100)}/100`} />
+              <Fact label={t.car.mileage} value={`${listing.mileage.toLocaleString("en-US")} mi`} />
+              <Fact label={t.car.durabilityLabel} value={`${Math.round(listing.durability * 100)}/100`} />
               <Fact
-                label="Title"
-                value={listing.titleStatus === "clean" ? "Clean · to verify" : listing.titleStatus}
+                label={t.car.title}
+                value={listing.titleStatus === "clean" ? t.car.titleCleanToVerify : listing.titleStatus}
               />
-              <Fact label="Owners" value={listing.ownerCount ? String(listing.ownerCount) : "Unknown"} />
-              <Fact label="Transmission" value={listing.transmission} />
-              <Fact label="VIN" value={listing.vin ?? "Not published"} />
+              <Fact label={t.car.owners} value={listing.ownerCount ? String(listing.ownerCount) : t.car.unknown} />
+              <Fact label={t.car.transmission} value={listing.transmission} />
+              <Fact label={t.car.vin} value={listing.vin ?? t.car.vinNotPublished} />
             </dl>
           </Card>
 
           {listing.description && (
-            <Card title="About">
+            <Card title={t.car.about}>
               <p className="whitespace-pre-line px-4 py-3 font-serif text-[0.875rem] leading-snug text-ink-muted sm:px-6">
                 {listing.description}
               </p>
             </Card>
           )}
 
-          <Card title="Notes">
+          <Card title={t.car.notes}>
             <ul className="px-4 py-3 sm:px-6">
               {listing.notes.map((note) => (
                 <li
@@ -188,17 +189,16 @@ export default async function CarPage({
           </Card>
 
           {priceable && (
-            <Card title="The price">
+            <Card title={t.car.thePrice}>
               <dl className="tnum px-4 py-3 font-mono text-[0.75rem] sm:px-6">
-                <Line label="Vehicle" value={formatMoney(quote.retailPriceCents, { cents: true })} />
-                <Line label={`${listing.state} tax`} value={formatMoney(quote.salesTaxCents, { cents: true })} />
-                <Line label="Doc fee" value={formatMoney(quote.docFeeCents, { cents: true })} />
-                <Line label="Title & reg" value={formatMoney(quote.titleRegCents, { cents: true })} />
-                <Line label="Out the door" value={formatMoney(quote.outTheDoorCents, { cents: true })} strong />
+                <Line label={t.car.vehicle} value={formatMoney(quote.retailPriceCents, { cents: true })} />
+                <Line label={`${listing.state} ${t.car.tax}`} value={formatMoney(quote.salesTaxCents, { cents: true })} />
+                <Line label={t.car.docFee} value={formatMoney(quote.docFeeCents, { cents: true })} />
+                <Line label={t.car.titleReg} value={formatMoney(quote.titleRegCents, { cents: true })} />
+                <Line label={t.car.outTheDoorRow} value={formatMoney(quote.outTheDoorCents, { cents: true })} strong />
               </dl>
               <p className="border-t border-rule px-4 py-2 font-serif text-[0.75rem] leading-snug text-ink-muted sm:px-6">
-                We are the seller and the creditor. Nothing is sold on to a
-                third-party lender.
+                {t.car.creditorNote}
               </p>
             </Card>
           )}
