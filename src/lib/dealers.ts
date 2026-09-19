@@ -37,6 +37,8 @@ export interface Dealer {
   /** Where the member is told to turn up. On the dealer, not in the UI. */
   streetAddress?: string;
   postalCode?: string;
+  /** wa.me form: country code first, digits only. See migration 0006. */
+  whatsapp?: string;
   /** Stripe connected account. Every dollar of car money settles here. */
   stripeAccountId?: string;
   stripeChargesEnabled: boolean;
@@ -59,6 +61,7 @@ export const DEALERS: Dealer[] = [
     city: "Intercession City",
     streetAddress: "5624 S Orange Blossom Trail",
     postalCode: "33848",
+    whatsapp: "17868671441",
     // A connected account exists (test mode), but nothing else does: no licence
     // on file, and Stripe has not enabled charges because onboarding is
     // unfinished. This dealer cannot sell, cannot hold paper, and cannot take a

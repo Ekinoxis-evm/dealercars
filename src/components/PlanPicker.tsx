@@ -21,6 +21,7 @@ import {
 import type { PriceQuote, RetailListing } from "@/lib/types";
 import { RegZDisclosure } from "./RegZDisclosure";
 import { useI18n } from "@/i18n/client";
+import { usePublishQuote } from "./quote-context";
 
 /**
  * Build a payment on one specific car.
@@ -70,6 +71,7 @@ export function PlanPicker({
 }) {
   const { dict } = useI18n();
   const { authenticated, login } = usePrivy();
+  const publishQuote = usePublishQuote();
 
   // The car's price fixes the whole range. Computed from the initial quote,
   // which is server-rendered, so the sliders are correct in the first paint
@@ -176,6 +178,32 @@ export function PlanPicker({
    */
   const settling =
     downCents !== quote.downCents || (plan?.termMonths ?? termMonths) !== termMonths;
+
+  /**
+   * Hand the settled plan to the contact button.
+   *
+   * Only once the server has confirmed it — publishing mid-drag would put a
+   * payment into a WhatsApp message that the page never actually showed. The
+   * figures are the server's, copied rather than recomputed.
+   */
+  useEffect(() => {
+    if (!plan || settling) return;
+    publishQuote({
+      kind: "plan",
+      plan: {
+        url:
+          typeof window !== "undefined"
+            ? window.location.href.split("?")[0]
+            : `/cars/${listing.id}`,
+        vehicle: `${listing.year} ${listing.make} ${listing.model}`,
+        downCents: plan.downCents,
+        monthlyPaymentCents: plan.monthlyPaymentCents,
+        termMonths: plan.termMonths,
+        outTheDoorCents: quote.outTheDoorCents,
+      },
+    });
+    return () => publishQuote(null);
+  }, [plan, settling, quote.outTheDoorCents, listing, publishQuote]);
   const settlingClass = settling
     ? "opacity-50 transition-opacity"
     : "transition-opacity";

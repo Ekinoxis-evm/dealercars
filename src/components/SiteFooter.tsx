@@ -21,7 +21,11 @@ export function SiteFooter({ dict }: { dict: Dictionary }) {
 
   return (
     <footer className="border-t border-rule-strong bg-paper-sunken">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      {/* Extra bottom padding clears the fixed contact button. The last thing
+          in this footer is a Reg Z representative example, and a floating
+          control sitting on top of a disclosure is the disclosure not being
+          clear and conspicuous. */}
+      <div className="mx-auto max-w-6xl px-4 pb-28 pt-10 sm:px-6">
         <p className="font-display text-sm font-bold uppercase tracking-tight">
           MGM<span className="text-accent"> Auto</span>
         </p>

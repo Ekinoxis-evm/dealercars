@@ -290,6 +290,24 @@ export const es: Dictionary = {
       "cuando llegue al lote un auto que te sirva. Nada más, nunca.",
   },
 
+  contact: {
+    button: "Contáctanos",
+    buttonWithQuote: "Enviar esto por WhatsApp",
+    greeting: "Hola MGM Auto 👋",
+    interestedIn: "Me interesa este auto:",
+    myPlan: "El plan que armé:",
+    down: "Entrada",
+    monthly: "Cuota mensual",
+    term: "Plazo",
+    outTheDoor: "Precio final",
+    months: "meses",
+    zeroApr: "0% APR, sin cargo por financiamiento",
+    lookingWithBudget: "Busco un auto con este presupuesto:",
+    maxMonthly: "Cuota máxima que puedo pagar",
+    reaches: "Me alcanza hasta",
+    general: "Quiero información sobre un auto.",
+  },
+
   footer: {
     repLabel: "Ejemplo representativo",
     repBody: (parts) =>

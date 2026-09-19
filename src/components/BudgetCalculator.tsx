@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatMoney, installmentPlan, solveAffordability } from "@/lib/finance";
 import { dealCostsFor, SUPPORTED_STATES } from "@/lib/deal-costs";
@@ -10,6 +10,7 @@ import { carTitle } from "@/lib/inventory-card";
 import { RegZDisclosure } from "@/components/RegZDisclosure";
 import { localePath, type Locale } from "@/i18n";
 import { useI18n } from "@/i18n/client";
+import { usePublishQuote } from "./quote-context";
 
 /**
  * Shop by what you can actually pay.
@@ -48,6 +49,7 @@ export function BudgetCalculator({
   locale: Locale;
 }) {
   const { dict } = useI18n();
+  const publishQuote = usePublishQuote();
   const p = (path: string) => localePath(locale, path);
   const [downDollars, setDownDollars] = useState(2500);
   const [monthlyDollars, setMonthlyDollars] = useState(400);
@@ -69,6 +71,30 @@ export function BudgetCalculator({
     envelope.downCents,
     TERM_MONTHS
   );
+
+  // Hand the envelope to the contact button. No specific car, so the message
+  // is "here is my budget" rather than "here is my plan".
+  useEffect(() => {
+    publishQuote({
+      kind: "budget",
+      budget: {
+        url:
+          typeof window !== "undefined"
+            ? window.location.href.split("#")[0]
+            : p("/"),
+        downCents: envelope.downCents,
+        monthlyCents: envelope.monthlyCents,
+        maxOutTheDoorCents: budget.maxOutTheDoorCents,
+      },
+    });
+    return () => publishQuote(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    envelope.downCents,
+    envelope.monthlyCents,
+    budget.maxOutTheDoorCents,
+    publishQuote,
+  ]);
 
   const fits = useMemo(
     () =>

@@ -277,6 +277,24 @@ export const en = {
     whenSomethingLands: "when a car that fits lands on the lot. Nothing else, ever.",
   },
 
+  contact: {
+    button: "Contact us",
+    buttonWithQuote: "Send this to us",
+    greeting: "Hello MGM Auto 👋",
+    interestedIn: "I'm interested in this car:",
+    myPlan: "The plan I built:",
+    down: "Down payment",
+    monthly: "Monthly",
+    term: "Term",
+    outTheDoor: "Out the door",
+    months: "months",
+    zeroApr: "0% APR, no finance charge",
+    lookingWithBudget: "I'm looking for a car with this budget:",
+    maxMonthly: "Most I can pay monthly",
+    reaches: "That reaches",
+    general: "I'd like information about a car.",
+  },
+
   footer: {
     repLabel: "Representative example",
     repBody: (parts: {
