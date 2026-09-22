@@ -38,13 +38,22 @@ export interface VisitSlot {
   localDateKey: string;
 }
 
+/*
+ * A note on the shape of every Intl call in this file: the property is always
+ * written out as `timeZone: zone`, never as the `{ timeZone }` shorthand. The
+ * production minifier inlines these small helpers into their callers and, with
+ * the shorthand, left `timeZone` referring to a parameter that no longer
+ * existed — "ReferenceError: timeZone is not defined", a 500 on every
+ * appointment request, and nothing wrong in the source. Keep it explicit.
+ */
+
 /**
  * Milliseconds a zone is ahead of UTC at a given instant.
  * Formats the instant in the zone, reads the wall clock back, and diffs.
  */
-function zoneOffsetMs(at: Date, timeZone: string): number {
+function zoneOffsetMs(at: Date, zone: string): number {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
+    timeZone: zone,
     hour12: false,
     year: "numeric",
     month: "2-digit",
@@ -92,9 +101,9 @@ export function zonedWallClockToUtc(
 }
 
 /** The dealer-local calendar date parts for an instant. */
-function localParts(at: Date, timeZone: string) {
+function localParts(at: Date, zone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
+    timeZone: zone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -109,9 +118,9 @@ function localParts(at: Date, timeZone: string) {
   };
 }
 
-function weekdayIn(at: Date, timeZone: string): number {
+function weekdayIn(at: Date, zone: string): number {
   const name = new Intl.DateTimeFormat("en-US", {
-    timeZone,
+    timeZone: zone,
     weekday: "short",
   }).format(at);
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(name);
@@ -165,7 +174,7 @@ export function availableSlots(params: {
           startsAt: iso,
           localDateKey: dateKey,
           localLabel: new Intl.DateTimeFormat("en-US", {
-            timeZone,
+            timeZone: timeZone,
             hour: "numeric",
             minute: "2-digit",
           }).format(startsAt),
@@ -178,9 +187,9 @@ export function availableSlots(params: {
 }
 
 /** "Thursday, August 27" in the dealer's zone. */
-export function formatSlotDate(iso: string, timeZone: string): string {
+export function formatSlotDate(iso: string, zone: string): string {
   return new Intl.DateTimeFormat("en-US", {
-    timeZone,
+    timeZone: zone,
     weekday: "long",
     month: "long",
     day: "numeric",
