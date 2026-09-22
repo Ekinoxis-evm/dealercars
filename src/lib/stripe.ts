@@ -143,7 +143,7 @@ export async function createVisitDepositCheckout(params: {
         visit_id: params.visitId,
       },
       success_url: `${serverEnv.siteUrl}/account/visits?held=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${serverEnv.siteUrl}/cars/${params.listing.id}`,
+      cancel_url: `${serverEnv.siteUrl}/marketplace/${params.listing.id}`,
     },
     { stripeAccount: params.dealerAccountId }
   );
@@ -214,7 +214,7 @@ export async function createDownPaymentCheckout(params: {
         deal_id: params.dealId ?? "",
       },
       success_url: `${serverEnv.siteUrl}/account/deals?paid=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${serverEnv.siteUrl}/cars/${listing.id}`,
+      cancel_url: `${serverEnv.siteUrl}/marketplace/${listing.id}`,
     },
     { stripeAccount: params.dealerAccountId }
   );

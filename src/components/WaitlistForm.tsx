@@ -6,7 +6,7 @@ import { useI18n } from "@/i18n/client";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
- * Waitlist capture. No backend exists yet, so this validates locally and
+ * The subscription. No backend exists yet, so this validates locally and
  * shows an inline confirmation — nothing is sent anywhere.
  */
 export function WaitlistForm() {
@@ -19,7 +19,7 @@ export function WaitlistForm() {
     e.preventDefault();
     const trimmed = email.trim();
     if (!EMAIL_RE.test(trimmed)) {
-      setError("That doesn't look like a working email address. Check it and try again.");
+      setError(dict.waitlist.invalid);
       return;
     }
     setError(null);
@@ -48,14 +48,14 @@ export function WaitlistForm() {
     <form onSubmit={handleSubmit} noValidate className="max-w-xl">
       <div className="flex flex-col gap-2 sm:flex-row">
         <label htmlFor="waitlist-email" className="sr-only">
-          Email address
+          {dict.waitlist.emailLabel}
         </label>
         <input
           id="waitlist-email"
           type="email"
           autoComplete="email"
           required
-          placeholder="you@example.com"
+          placeholder={dict.waitlist.placeholder}
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
@@ -69,7 +69,7 @@ export function WaitlistForm() {
           type="submit"
           className="shrink-0 border border-accent bg-accent px-5 py-2.5 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-accent-ink hover:opacity-90"
         >
-          Join the waitlist
+          {dict.waitlist.join}
         </button>
       </div>
       {error && (
@@ -82,8 +82,7 @@ export function WaitlistForm() {
         </p>
       )}
       <p className="mt-2 font-serif text-[0.875rem] leading-relaxed text-ink-muted">
-        No credit pull to join. When we open in your market, you&rsquo;ll verify
-        your budget first — then the cars come to you.
+        {dict.waitlist.note}
       </p>
     </form>
   );

@@ -36,6 +36,24 @@ export async function verifiedDid(token: string | null): Promise<string | null> 
 }
 
 /**
+ * The verified email behind a DID, lower-cased, or null.
+ *
+ * Privy verifies the address at login (email OTP, or Google's own claim), so
+ * this is the one email we are prepared to match an admin invitation against.
+ * It is a call to Privy, so it is made only when a DID has no admin row yet —
+ * the ordinary request path never pays for it.
+ */
+export async function verifiedEmail(did: string): Promise<string | null> {
+  try {
+    const user = await privyClient().getUser(did);
+    const address = user.email?.address ?? user.google?.email ?? null;
+    return address ? address.trim().toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Pull the access token off a request. Privy puts it in the Authorization
  * header under local-storage sessions and in the `privy-token` cookie under
  * cookie sessions; accept either so the client can switch without a server

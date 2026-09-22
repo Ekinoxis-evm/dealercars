@@ -18,7 +18,7 @@ import type { Dictionary } from "./en";
  */
 export const es: Dictionary = {
   nav: {
-    cars: "Autos",
+    cars: "Marketplace",
     auctionAccess: "Subastas",
     account: "Mi cuenta",
     home: "MGM Auto — inicio",
@@ -41,28 +41,22 @@ export const es: Dictionary = {
     eyebrow: "Autos usados, financiados por quienes los venden",
     title1: "Nuestros autos. Un solo precio.",
     title2: "Sin intereses, nunca.",
-    lede: "Compramos los autos, tenemos el título y llevamos el financiamiento nosotros mismos. Cada auto del lote muestra el precio final completo, y puedes dividir ese mismo precio hasta en tres años sin pagar un centavo de interés.",
-    specimenLabel: "Así se ve un auto de nuestro lote",
-    downToday: "De entrada hoy",
-    perMonth: "Al mes ×",
-    outTheDoor: "precio final",
-    financed: "financiado",
-    zeroInterest: "$0.00 de interés",
-    seeCars: "Ver los autos",
-    whatCanIAfford: "¿Cuánto me alcanza?",
+    // Sin plazo aquí a propósito: "hasta en tres años" es un término
+    // disparador de Reg Z, y el encabezado ya no lleva la divulgación.
+    lede: "Compramos los autos, tenemos el título y llevamos el financiamiento nosotros mismos. Cada auto del marketplace muestra su precio final completo, y puedes dividir ese mismo precio en cuotas mensuales sin pagar un centavo de interés.",
+    seeCars: "Ver el marketplace",
+    howItWorksLink: "Cómo funciona",
     onTheLotNow: "En el lote ahora",
     allCars: (n: number) => `Ver los ${n} autos →`,
     onTheLotLede:
       "Autos nuestros, inspeccionados y con título. El precio de cada uno es el precio final — impuesto, título, placas y doc fee incluidos.",
-    budgetTitle: "Empieza por tu presupuesto, no por el precio de lista.",
-    budgetLede:
-      "Pon tu entrada y tu tope mensual. Lo resolvemos al revés — pasando por impuesto, título y cargos — hasta los autos del lote a los que tu dinero de verdad alcanza.",
     howTitle: "Cómo se compra aquí",
     howLede:
       "Seis pasos, y cuatro son responsabilidad nuestra. Ésa es la diferencia entre un concesionario y un clasificado.",
-    waitlistTitle: "Dinos qué estás buscando.",
-    waitlistLede:
-      "Compramos los autos uno por uno y el lote se mueve rápido. Déjanos tu correo y te avisamos cuando llegue algo que entre en tu presupuesto.",
+    inPerson: "Esto lo hacemos en persona",
+    inPersonLede:
+      "Agendas una hora y vienes a la oficina. Repasamos qué necesitas de verdad, cuánto debería costar y cómo lo vas a pagar — antes de firmar nada.",
+    openInMaps: "Abrir en Google Maps →",
   },
 
   steps: [
@@ -99,7 +93,7 @@ export const es: Dictionary = {
   ],
 
   cars: {
-    eyebrow: "Nuestro inventario",
+    eyebrow: "Marketplace",
     title: "Todos los autos que tenemos.",
     lede: "Un precio por auto, y es el precio que de verdad pagas: impuesto, título, placas y doc fee ya incluidos. Págalo completo o divídelo en los meses que elijas, sin intereses — el plan de pagos cuesta exactamente lo mismo que el contado.",
     empty:
@@ -124,6 +118,7 @@ export const es: Dictionary = {
 
   card: {
     photosComing: "Fotos en camino",
+    mileageUnknown: "Millaje por confirmar",
     outTheDoor: "Precio final",
     zeroApr: "Planes 0% APR",
     notForSale: "aún no está a la venta",
@@ -142,6 +137,7 @@ export const es: Dictionary = {
     sourcedPrivately: "Compra particular",
     dealerLot: "Lote propio",
     miles: "millas",
+    mileageUnknown: "millaje por confirmar",
     outTheDoorTail: "precio final — impuesto, título y cargos incluidos.",
     notForSaleTitle: "Todavía no está a la venta — lo estamos comprando.",
     notForSaleBody:
@@ -190,19 +186,15 @@ export const es: Dictionary = {
     monthsWord: "meses",
     belowFloor: (amount: string) =>
       `Este auto necesita al menos ${amount} de entrada.`,
+    /** Still used by the Auction Access checkout, not by the plan builder. */
+    opening: "Abriendo el pago…",
+    signIn: "Inicia sesión para continuar",
     financed: "Financiado",
     interestRow: "Interés",
     youPayInTotal: "Pagas en total",
-    payDown: (amount: string) => `Pagar ${amount} de entrada`,
-    payInFull: (amount: string) => `Pagar ${amount} completo`,
-    signIn: "Inicia sesión para continuar",
-    opening: "Abriendo el pago…",
-    refundNote:
-      "Reembolsable por completo hasta que firmes en tu cita. Apple Pay disponible.",
     comparisonLabel: "No lo ofrecemos aquí —",
     comparison: (rate: string, monthly: string, extra: string) =>
       `con una tasa típica de ${rate} en un lote buy-here-pay-here, este auto saldría en ${monthly}/mes y costaría ${extra} más en intereses. Ése es el dinero que te quedas.`,
-    checkoutError: "Algo salió mal al abrir el pago.",
   },
 
   visit: {
@@ -262,28 +254,14 @@ export const es: Dictionary = {
     ],
   },
 
-  budget: {
-    worksheet: "Calculadora",
-    noInterest: "0% APR — sin intereses",
-    feesIncluded: "impuesto, título y cargos incluidos",
-    cashDownToday: "Entrada hoy",
-    monthlyCeiling: "Tope mensual",
-    ceilingNote:
-      "Un tope, no un deseo. Partimos de lo que puedes seguir pagando — impuesto, título, placas y doc fee ya contados. Nada se va en intereses.",
-    canShopUpTo: "Te alcanza hasta",
-    outTheDoorIn: (state: string) =>
-      `Precio final, en ${state} — el precio completo, no uno al que después le suman cargos. Es un auto de`,
-    carOnce: "una vez que salen impuesto, título y doc fee.",
-    seeWhatsOnLot: "Ver qué hay en el lote →",
-    nothingFits:
-      "Hoy no hay nada en el lote que entre en ese presupuesto. El lote se mueve cada semana —",
-    seeEverything: "mira todo lo que tenemos",
-    carsFit: (n: number) =>
-      `${n} ${n === 1 ? "auto entra" : "autos entran"} en el lote`,
-    seeWholeLot: "Ver todo el lote →",
-  },
-
   waitlist: {
+    title: "Dinos qué estás buscando.",
+    lede: "Compramos los autos uno por uno y el lote se mueve rápido. Déjanos tu correo y te avisamos cuando llegue algo que entre en tu presupuesto.",
+    emailLabel: "Correo electrónico",
+    placeholder: "tu@correo.com",
+    join: "Suscribirme",
+    note: "Sin consulta de crédito para suscribirte. Un correo cuando llegue un auto que te sirva, nada más.",
+    invalid: "Ese correo no parece válido. Revísalo e inténtalo de nuevo.",
     onTheList: "Ya estás en la lista.",
     weWillEmail: "Le escribimos a",
     whenSomethingLands:
@@ -291,8 +269,10 @@ export const es: Dictionary = {
   },
 
   contact: {
-    button: "Contáctanos",
-    buttonWithQuote: "Enviar esto por WhatsApp",
+    talkToAgent: "Hablar con un asesor por WhatsApp",
+    talkToAgentNote:
+      "Tu plan va en el mensaje tal como lo armaste. Un asesor confirma el auto, las cifras y tu cita — desde esta página no se cobra nada.",
+    whatsapp: "WhatsApp",
     greeting: "Hola MGM Auto 👋",
     interestedIn: "Me interesa este auto:",
     myPlan: "El plan que armé:",
@@ -309,12 +289,8 @@ export const es: Dictionary = {
   },
 
   footer: {
-    repLabel: "Ejemplo representativo",
-    repBody: (parts) =>
-      `Mazda3 2014, 69,000 millas, Florida Central. Precio final ${parts.otd} incluyendo impuesto, título, placas y doc fee. ${parts.down} de entrada; monto financiado ${parts.financed}; tasa de porcentaje anual ${parts.apr}; ${parts.n} pagos mensuales de ${parts.monthly} y un pago final de ${parts.final}; total de pagos ${parts.total}; cargo por financiamiento ${parts.charge}. Tus condiciones dependen de la verificación de tus ingresos, domicilio y pago inicial.`,
+    follow: "Síguenos",
     creditor:
-      "MGM Auto es el vendedor y el acreedor de cada vehículo que publica: concesionario de vehículos con licencia y vendedor a plazos autorizado. Compramos los autos, tenemos el título y tenemos el contrato. No se lo vendemos a ningún banco.",
-    reported:
-      "El historial, el millaje y la condición del vehículo se reportan tal como los recibimos del vendedor y de nuestra propia inspección. Todos los precios en dólares estadounidenses.",
+      "MGM Auto es el vendedor y el acreedor de cada vehículo que publica — concesionario de vehículos con licencia y vendedor a plazos autorizado.",
   },
 };

@@ -12,7 +12,7 @@ function msg(t: ContactStrings) {
     {
       kind: "plan",
       plan: {
-        url: "https://dealercars.vercel.app/es/cars/listing_mazda3_orl_2014",
+        url: "https://dealercars.vercel.app/es/marketplace/listing_mazda3_orl_2014",
         vehicle: "2014 Mazda3",
         downCents: DOWN,
         monthlyPaymentCents: MONTHLY,

@@ -20,7 +20,7 @@ export async function loadDealer(id: string): Promise<Dealer | undefined> {
   const { data, error } = await supabaseAdmin()
     .from("dealers")
     .select(
-      "id, legal_name, dba_name, state, city, street_address, postal_code, whatsapp, dealer_license_number, dealer_license_verified_at, license_number, license_verified_at, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, time_zone"
+      "id, legal_name, dba_name, state, city, street_address, postal_code, whatsapp, instagram_url, facebook_url, tiktok_url, dealer_license_number, dealer_license_verified_at, license_number, license_verified_at, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, time_zone"
     )
     .eq("id", id)
     .maybeSingle();
@@ -39,6 +39,9 @@ export async function loadDealer(id: string): Promise<Dealer | undefined> {
     streetAddress: data.street_address ?? undefined,
     postalCode: data.postal_code ?? undefined,
     whatsapp: data.whatsapp ?? undefined,
+    instagramUrl: data.instagram_url ?? undefined,
+    facebookUrl: data.facebook_url ?? undefined,
+    tiktokUrl: data.tiktok_url ?? undefined,
     state: data.state,
     city: data.city,
     dealerLicenseNumber: data.dealer_license_number ?? undefined,

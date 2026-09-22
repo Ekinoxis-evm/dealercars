@@ -80,7 +80,7 @@ function toListing(row: any): RetailListing {
     make: row.make,
     model: row.model,
     trim: row.trim ?? "",
-    mileage: row.mileage,
+    mileage: row.mileage ?? undefined,
     titleStatus: row.title_status,
     transmission: row.transmission ?? "automatic",
     exteriorColor: row.exterior_color ?? "",

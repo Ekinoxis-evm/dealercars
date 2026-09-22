@@ -115,7 +115,7 @@ export function AdminCarEditor({ listingId }: { listingId?: string }) {
         make: listing.make,
         model: listing.model,
         trim: listing.trim ?? "",
-        mileage: String(listing.mileage),
+        mileage: listing.mileage === undefined ? "" : String(listing.mileage),
         titleStatus: listing.titleStatus,
         transmission: listing.transmission,
         exteriorColor: listing.exteriorColor ?? "",
@@ -205,7 +205,9 @@ export function AdminCarEditor({ listingId }: { listingId?: string }) {
       make: form.make.trim(),
       model: form.model.trim(),
       trim: form.trim.trim() || null,
-      mileage: intOrUndefined(form.mileage),
+      // Blank clears it: unknown mileage is a real state, shown as "to be
+      // confirmed", and it fails underwriting until somebody records it.
+      mileage: form.mileage.trim() === "" ? null : intOrUndefined(form.mileage),
       title_status: form.titleStatus,
       transmission: form.transmission,
       exterior_color: form.exteriorColor.trim() || null,
@@ -330,12 +332,10 @@ export function AdminCarEditor({ listingId }: { listingId?: string }) {
           <Row>
             <Field
               label="Mileage"
-              required
-              hint="Over 150,000 fails underwriting outright."
+              hint="Over 150,000 fails underwriting outright. Blank shows as “to be confirmed” and fails it too."
             >
               <input
                 type="number"
-                required
                 value={form.mileage}
                 onChange={(e) => set("mileage", e.target.value)}
                 className={INPUT}

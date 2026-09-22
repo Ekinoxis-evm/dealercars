@@ -105,7 +105,11 @@ export function contactMessage(
     ].join("\n");
   }
 
-  return [t.greeting, "", t.general, payload.url].join("\n");
+  // From the footer there is no particular page to point at; the URL line is
+  // simply left out rather than sent empty.
+  const lines = [t.greeting, "", t.general];
+  if (payload.url) lines.push(payload.url);
+  return lines.join("\n");
 }
 
 /**

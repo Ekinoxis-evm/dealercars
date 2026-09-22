@@ -6,7 +6,8 @@ import { minDownFor, quoteListing, formatMoney } from "@/lib/finance";
 import { DEFAULT_TERM_MONTHS, clampDown, downBounds } from "@/lib/payment-slider";
 import { loadDealer } from "@/lib/dealer-store";
 import { creditBlockReason } from "@/lib/dealers";
-import { PlanPicker, VisitScheduler } from "@/components/privy-deferred";
+import { VisitScheduler } from "@/components/privy-deferred";
+import { PlanPicker } from "@/components/PlanPicker";
 import { CarGallery } from "@/components/CarGallery";
 import { getDictionary, isLocale } from "@/i18n";
 
@@ -32,7 +33,11 @@ export async function generateMetadata({
   if (!listing) return { title: "404 — MGM Auto" };
   return {
     title: `${listing.year} ${listing.make} ${listing.model} — MGM Auto`,
-    description: `${listing.mileage.toLocaleString("en-US")} ${t.car.miles}, ${listing.city}, ${listing.state}.`,
+    description: `${
+      listing.mileage === undefined
+        ? t.car.mileageUnknown
+        : `${listing.mileage.toLocaleString("en-US")} ${t.car.miles}`
+    }, ${listing.city}, ${listing.state}.`,
     // Deliberately no down payment or monthly figure in the description: a
     // share card is an advertisement, and a trigger term there would need the
     // Reg Z disclosure alongside it, which a meta description cannot carry.
@@ -90,10 +95,16 @@ export default async function CarPage({
           {listing.year} {listing.make} {listing.model}
         </h1>
         <p className="mt-1 font-serif text-lg text-ink-muted">
-          {listing.trim} &middot;{" "}
-          <span className="tnum">{listing.mileage.toLocaleString("en-US")}</span>{" "}
-          {t.car.miles} &middot; {listing.transmission} &middot; {listing.exteriorColor} over{" "}
-          {listing.interiorColor}
+          {[
+            listing.trim,
+            listing.mileage === undefined
+              ? t.car.mileageUnknown
+              : `${listing.mileage.toLocaleString("en-US")} ${t.car.miles}`,
+            listing.transmission,
+            [listing.exteriorColor, listing.interiorColor].filter(Boolean).join(" / "),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
 
         {priceable && (
@@ -155,7 +166,14 @@ export default async function CarPage({
         <div className="flex flex-col gap-6">
           <Card title={t.car.theCar}>
             <dl className="tnum grid grid-cols-2 gap-x-4 px-4 py-3 font-mono text-[0.75rem] sm:px-6">
-              <Fact label={t.car.mileage} value={`${listing.mileage.toLocaleString("en-US")} mi`} />
+              <Fact
+                label={t.car.mileage}
+                value={
+                  listing.mileage === undefined
+                    ? t.car.unknown
+                    : `${listing.mileage.toLocaleString("en-US")} mi`
+                }
+              />
               <Fact label={t.car.durabilityLabel} value={`${Math.round(listing.durability * 100)}/100`} />
               <Fact
                 label={t.car.title}

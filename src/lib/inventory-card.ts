@@ -33,7 +33,8 @@ export interface CarCardData {
   make: string;
   model: string;
   trim: string;
-  mileage: number;
+  /** Undefined when not yet recorded. The card says so rather than showing 0. */
+  mileage?: number;
   city: string;
   state: string;
   status: ListingStatus;

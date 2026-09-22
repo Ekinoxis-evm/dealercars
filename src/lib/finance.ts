@@ -391,7 +391,8 @@ function underwrite(
     monthlyPaymentCents: Money;
     downCents: Money;
     outTheDoorCents: Money;
-    mileage: number;
+    /** Undefined when not yet recorded, which is itself a failing fact. */
+    mileage?: number;
     termMonths: number;
   },
   grossMonthlyIncomeCents: Money
@@ -417,7 +418,12 @@ function underwrite(
     );
   }
 
-  if (facts.mileage > UNDERWRITING.maxMileage) {
+  if (facts.mileage === undefined) {
+    // Capacity underwriting leans on durability, and durability is a function
+    // of mileage. A car nobody has put an odometer reading on cannot clear the
+    // gate, whatever its make.
+    reasons.push("Mileage has not been recorded for this car");
+  } else if (facts.mileage > UNDERWRITING.maxMileage) {
     reasons.push(
       `Mileage ${facts.mileage.toLocaleString("en-US")} exceeds the ${UNDERWRITING.maxMileage.toLocaleString(
         "en-US"

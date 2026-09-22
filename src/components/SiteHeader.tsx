@@ -32,7 +32,7 @@ export function SiteHeader({
 
         <nav className="flex items-center gap-3 sm:gap-5">
           <Link
-            href={p("/cars")}
+            href={p("/marketplace")}
             className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink-muted underline-offset-4 hover:text-ink hover:underline"
           >
             {dict.nav.cars}
