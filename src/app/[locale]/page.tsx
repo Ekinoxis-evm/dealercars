@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { getDictionary, isLocale, localePath } from "@/i18n";
 import { notFound } from "next/navigation";
-import { formatMoney, installmentPlan } from "@/lib/finance";
 import { isOnTheLot, listShopWindow } from "@/lib/listing-store";
 import { toCardData } from "@/lib/inventory-card";
-import { BudgetCalculator } from "@/components/BudgetCalculator";
+import { loadDealer } from "@/lib/dealer-store";
+import { OPERATING_DEALER_ID } from "@/lib/dealers";
 import { CarCard } from "@/components/CarCard";
-import { RegZDisclosure } from "@/components/RegZDisclosure";
-import { WaitlistForm } from "@/components/WaitlistForm";
 
 /**
  * Same sixty seconds of staleness as the rest of the shop window. The cars
@@ -19,16 +17,19 @@ export const revalidate = 60;
 const FEATURED_COUNT = 6;
 
 /**
- * The live product, quoted from the spec's worked example: the Orlando 2014
- * Mazda3 at $12,831.70 out the door in Orange County, $4,000 down over 36
- * interest-free months. Hardcoded here on purpose — this is the specimen that
- * explains the offer, not a quote on a specific car, and it must not change
- * shape when a car sells.
+ * The front page, and what is deliberately NOT on it.
+ *
+ * It used to open with a specimen deal — a down payment, a monthly figure and
+ * the Reg Z block those two oblige — and carry a budget calculator with a
+ * second disclosure under it. Both are gone. The page now states no down
+ * payment, no monthly payment and no period of repayment, so it carries no
+ * trigger term and needs no disclosure; the cards show a cash price and an
+ * APR, neither of which is one. Payments and their disclosure live on the car
+ * page, next to the plan the member actually builds.
+ *
+ * Keep it that way. Put "$245/mo" anywhere on this page and `<RegZDisclosure>`
+ * has to come back with it.
  */
-const SPECIMEN_OTD_CENTS = 12_831_70;
-const SPECIMEN_DOWN_CENTS = 4_000_00;
-
-
 export default async function Home({
   params,
 }: {
@@ -39,14 +40,18 @@ export default async function Home({
   const t = getDictionary(locale);
   const p = (path: string) => localePath(locale, path);
 
-  const listings = await listShopWindow();
+  const [listings, dealer] = await Promise.all([
+    listShopWindow(),
+    loadDealer(OPERATING_DEALER_ID),
+  ]);
   const featured = listings.filter(isOnTheLot).map(toCardData);
 
-  const specimen = installmentPlan(
-    SPECIMEN_OTD_CENTS,
-    SPECIMEN_DOWN_CENTS,
-    36
-  );
+  const dealerName = dealer?.dbaName ?? dealer?.legalName ?? "MGM Autobroker";
+  const address = dealer?.streetAddress
+    ? `${dealer.streetAddress}, ${dealer.city}, ${dealer.state}${
+        dealer.postalCode ? ` ${dealer.postalCode}` : ""
+      }`
+    : undefined;
 
   return (
     <main>
@@ -65,52 +70,18 @@ export default async function Home({
             {t.home.lede}
           </p>
 
-          {/* Specimen deal — trigger terms, so the Reg Z block rides along. */}
-          <div className="mt-10 max-w-2xl border border-rule-strong bg-paper-raised">
-            <p className="border-b border-rule bg-paper-sunken px-4 py-2 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
-              {t.home.specimenLabel} · 2014 Mazda3
-            </p>
-            <div className="tnum grid grid-cols-2 divide-x divide-rule px-4 py-4">
-              <div className="pr-4">
-                <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-                  {t.home.downToday}
-                </p>
-                <p className="font-display text-3xl font-extrabold leading-tight tracking-tight text-brass sm:text-4xl">
-                  {formatMoney(specimen.downCents)}
-                </p>
-              </div>
-              <div className="pl-4">
-                <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-                  {t.home.perMonth} {specimen.termMonths}
-                </p>
-                <p className="font-display text-3xl font-extrabold leading-tight tracking-tight text-brass sm:text-4xl">
-                  {formatMoney(specimen.monthlyPaymentCents, { cents: true })}
-                </p>
-              </div>
-            </div>
-            <p className="tnum px-4 font-mono text-[0.75rem] text-ink-muted">
-              {formatMoney(SPECIMEN_OTD_CENTS, { cents: true })}{" "}
-              {t.home.outTheDoor} ·{" "}
-              {formatMoney(specimen.amountFinancedCents, { cents: true })}{" "}
-              {t.home.financed} · {t.home.zeroInterest}
-            </p>
-            <div className="px-4 pb-4 pt-3">
-              <RegZDisclosure plan={specimen} />
-            </div>
-          </div>
-
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
-              href={p("/cars")}
+              href={p("/marketplace")}
               className="border border-accent bg-accent px-5 py-2.5 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-accent-ink hover:opacity-90"
             >
               {t.home.seeCars}
             </Link>
             <Link
-              href={`${p("/")}#budget`}
+              href={`${p("/")}#how`}
               className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink underline underline-offset-4 hover:text-accent"
             >
-              {t.home.whatCanIAfford} →
+              {t.home.howItWorksLink} ↓
             </Link>
           </div>
         </div>
@@ -125,7 +96,7 @@ export default async function Home({
                 {t.home.onTheLotNow}
               </h2>
               <Link
-                href={p("/cars")}
+                href={p("/marketplace")}
                 className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink underline underline-offset-4 hover:text-accent"
               >
                 {t.home.allCars(featured.length)}
@@ -143,23 +114,8 @@ export default async function Home({
         </section>
       )}
 
-      {/* ------------------------------------------------------ calculator */}
-      <section id="budget" className="scroll-mt-8 border-b border-rule-strong">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-          <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {t.home.budgetTitle}
-          </h2>
-          <p className="mt-3 max-w-2xl font-serif text-lg leading-relaxed text-ink-muted">
-            {t.home.budgetLede}
-          </p>
-          <div className="mt-8">
-            <BudgetCalculator cars={featured} locale={locale} />
-          </div>
-        </div>
-      </section>
-
       {/* ---------------------------------------------------- how it works */}
-      <section className="border-b border-rule-strong">
+      <section id="how" className="scroll-mt-8 border-b border-rule-strong">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
           <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
             {t.home.howTitle}
@@ -190,20 +146,56 @@ export default async function Home({
         </div>
       </section>
 
-      {/* -------------------------------------------------------- waitlist */}
-      <section id="waitlist" className="scroll-mt-8">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-          <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {t.home.waitlistTitle}
-          </h2>
-          <p className="mt-3 max-w-2xl font-serif text-lg leading-relaxed text-ink-muted">
-            {t.home.waitlistLede}
-          </p>
-          <div className="mt-6">
-            <WaitlistForm />
+      {/* ---------------------------------------------------------- office */}
+      {address && (
+        <section id="visit" className="scroll-mt-8">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+            <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
+              <div>
+                <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
+                  {t.home.inPerson}
+                </h2>
+                <p className="mt-3 font-serif text-lg leading-relaxed text-ink-muted">
+                  {t.home.inPersonLede}
+                </p>
+                <address className="mt-6 not-italic">
+                  <p className="font-display text-lg font-bold tracking-tight">
+                    {dealerName}
+                  </p>
+                  <p className="font-mono text-[0.875rem] leading-relaxed text-ink-muted">
+                    {dealer?.streetAddress}
+                    <br />
+                    {dealer?.city}, {dealer?.state} {dealer?.postalCode}
+                  </p>
+                </address>
+                <p className="mt-4">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] underline underline-offset-4 hover:text-accent"
+                  >
+                    {t.home.openInMaps}
+                  </a>
+                </p>
+              </div>
+
+              {/* Keyless embed: the `output=embed` form needs no Maps API key,
+                  so there is no secret to leak and nothing to bill. Lazy so it
+                  costs nothing on a phone that never scrolls this far. */}
+              <div className="border border-rule-strong bg-paper-raised">
+                <iframe
+                  title={`Map to ${dealerName}, ${address}`}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="aspect-[4/3] w-full border-0"
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

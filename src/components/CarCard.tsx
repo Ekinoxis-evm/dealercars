@@ -25,7 +25,7 @@ export function CarCard({ car, locale }: { car: CarCardData; locale: Locale }) {
 
   return (
     <article className="flex flex-col border border-rule-strong bg-paper-raised">
-      <Link href={localePath(locale, `/cars/${car.id}`)} className="group flex flex-1 flex-col">
+      <Link href={localePath(locale, `/marketplace/${car.id}`)} className="group flex flex-1 flex-col">
         <div className="relative">
           {car.photoUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -60,7 +60,11 @@ export function CarCard({ car, locale }: { car: CarCardData; locale: Locale }) {
           <dl className="tnum mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[0.75rem] text-ink-muted">
             <div className="flex gap-1">
               <dt className="sr-only">Mileage</dt>
-              <dd>{car.mileage.toLocaleString("en-US")} mi</dd>
+              <dd>
+                {car.mileage === undefined
+                  ? dict.card.mileageUnknown
+                  : `${car.mileage.toLocaleString("en-US")} mi`}
+              </dd>
             </div>
             <div className="flex gap-1">
               <dt className="sr-only">Location</dt>

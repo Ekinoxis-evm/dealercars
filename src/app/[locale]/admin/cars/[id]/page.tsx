@@ -26,7 +26,7 @@ export default async function EditCarPage({
         <p className="tnum mt-1 font-mono text-[0.8125rem] text-ink-muted">
           {id}
           {" · "}
-          <Link href={`/cars/${id}`} className="underline">
+          <Link href={`/marketplace/${id}`} className="underline">
             view the public page
           </Link>
         </p>

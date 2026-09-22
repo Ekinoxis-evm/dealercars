@@ -89,8 +89,8 @@ export function AdminInventory() {
           This account is not an admin.
         </h2>
         <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-          Inventory write access is a row in the <code>admins</code> table, keyed
-          by Privy DID. There is deliberately no way to grant it from here.
+          An existing admin can add you from the Admins screen by the email you
+          sign in with. Make sure you signed in with that address.
         </p>
       </div>
     );
@@ -137,7 +137,10 @@ export function AdminInventory() {
                   {listing.trim ? ` ${listing.trim}` : ""}
                 </p>
                 <p className="tnum truncate font-mono text-[0.75rem] text-ink-faint">
-                  {listing.mileage.toLocaleString("en-US")} mi &middot;{" "}
+                  {listing.mileage === undefined
+                    ? "mileage unknown"
+                    : `${listing.mileage.toLocaleString("en-US")} mi`}{" "}
+                  &middot;{" "}
                   {listing.city}, {listing.state} &middot; {listing.photos.length}{" "}
                   {listing.photos.length === 1 ? "photo" : "photos"}
                 </p>

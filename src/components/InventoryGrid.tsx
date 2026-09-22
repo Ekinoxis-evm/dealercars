@@ -61,8 +61,10 @@ export function InventoryGrid({
             (c) => c.outTheDoorCents !== null && c.outTheDoorCents <= maxCents
           );
 
-    // Unpriced cars sort last on a price sort rather than sorting as free.
+    // Unpriced cars sort last on a price sort rather than sorting as free, and
+    // a car with no recorded mileage sorts last rather than as brand new.
     const priceOf = (c: CarCardData) => c.outTheDoorCents ?? Number.MAX_SAFE_INTEGER;
+    const milesOf = (c: CarCardData) => c.mileage ?? Number.MAX_SAFE_INTEGER;
 
     return [...filtered].sort((a, b) => {
       switch (sort) {
@@ -71,7 +73,7 @@ export function InventoryGrid({
         case "price-desc":
           return priceOf(b) - priceOf(a);
         case "mileage-asc":
-          return a.mileage - b.mileage;
+          return milesOf(a) - milesOf(b);
         case "year-desc":
           return b.year - a.year;
       }

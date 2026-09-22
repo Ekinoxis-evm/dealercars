@@ -39,6 +39,10 @@ export interface Dealer {
   postalCode?: string;
   /** wa.me form: country code first, digits only. See migration 0006. */
   whatsapp?: string;
+  /** Where the business is on social media. Absent = not shown. See 0008. */
+  instagramUrl?: string;
+  facebookUrl?: string;
+  tiktokUrl?: string;
   /** Stripe connected account. Every dollar of car money settles here. */
   stripeAccountId?: string;
   stripeChargesEnabled: boolean;
@@ -62,6 +66,9 @@ export const DEALERS: Dealer[] = [
     streetAddress: "5624 S Orange Blossom Trail",
     postalCode: "33848",
     whatsapp: "17868671441",
+    instagramUrl: "https://www.instagram.com/mgmautoauctions",
+    facebookUrl: "https://www.facebook.com/profile.php?id=61570312161926",
+    tiktokUrl: undefined,
     // A connected account exists (test mode), but nothing else does: no licence
     // on file, and Stripe has not enabled charges because onboarding is
     // unfinished. This dealer cannot sell, cannot hold paper, and cannot take a

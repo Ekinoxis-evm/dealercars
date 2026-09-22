@@ -44,7 +44,7 @@ export interface ListingInput {
   make?: string;
   model?: string;
   trim?: string | null;
-  mileage?: number;
+  mileage?: number | null;
   title_status?: string;
   transmission?: string | null;
   exterior_color?: string | null;
@@ -156,7 +156,10 @@ export function parseListingInput(
     }
   }
 
-  if (required || has("mileage")) {
+  // Optional: a car can be listed before anyone has read the odometer, and an
+  // absent figure is honest where a zero would be a claim. Null clears it.
+  if (body.mileage === null) out.mileage = null;
+  else if (body.mileage !== undefined) {
     const m = int(body.mileage);
     if (m === null || m < 0) {
       errors.push("mileage must be a whole number of miles, zero or more.");
@@ -176,7 +179,7 @@ export function parseListingInput(
     } else {
       out.state = v;
       // Not an error. A car in an unmapped state is a legitimate thing to
-      // record — we just cannot quote it, and `/cars/[id]` says so rather than
+      // record — we just cannot quote it, and `/marketplace/[id]` says so rather than
       // inventing a tax figure. Surfaced as a warning by the caller.
     }
   }

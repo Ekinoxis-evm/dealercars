@@ -7,8 +7,7 @@ import { LOCALES, HTML_LANG, getDictionary, isLocale } from "@/i18n";
 import { I18nProvider } from "@/i18n/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { ContactButton } from "@/components/ContactButton";
-import { QuoteProvider } from "@/components/quote-context";
+import { DealerContactProvider } from "@/components/DealerContact";
 import { loadDealer } from "@/lib/dealer-store";
 import { OPERATING_DEALER_ID } from "@/lib/dealers";
 
@@ -80,15 +79,13 @@ export default async function LocaleLayout({
       >
         <Providers>
           <I18nProvider locale={locale}>
-            <QuoteProvider>
+            {/* The WhatsApp number reaches the plan builder and the footer
+                through this, so a new number is a row change, not a deploy. */}
+            <DealerContactProvider whatsapp={dealer?.whatsapp}>
               <SiteHeader locale={locale} dict={dict} />
               {children}
-              <SiteFooter dict={dict} />
-              {/* Sits above the footer on every page, and clears it: the
-                  footer gets bottom padding so the fixed button never covers
-                  the representative example, which is a disclosure. */}
-              <ContactButton whatsapp={dealer?.whatsapp} />
-            </QuoteProvider>
+              <SiteFooter dict={dict} dealer={dealer} />
+            </DealerContactProvider>
           </I18nProvider>
         </Providers>
       </body>

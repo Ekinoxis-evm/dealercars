@@ -8,7 +8,7 @@
  */
 export const en = {
   nav: {
-    cars: "Cars",
+    cars: "Marketplace",
     auctionAccess: "Auction access",
     account: "Account",
     home: "MGM Auto — home",
@@ -32,28 +32,22 @@ export const en = {
     eyebrow: "Used cars, financed by the people who sell them",
     title1: "Our cars. One price.",
     title2: "No interest, ever.",
-    lede: "We buy the cars, we hold the title, and we carry the loan ourselves. Every car on the lot shows the full out-the-door price, and you can split that exact price over three years without paying a cent of interest on it.",
-    specimenLabel: "What a car on our lot looks like",
-    downToday: "Down today",
-    perMonth: "Per month ×",
-    outTheDoor: "out the door",
-    financed: "financed",
-    zeroInterest: "$0.00 interest",
-    seeCars: "See the cars",
-    whatCanIAfford: "What can I afford?",
+    // No period of repayment stated here on purpose: "over three years" is a
+    // Regulation Z trigger term, and the hero no longer carries a disclosure.
+    lede: "We buy the cars, we hold the title, and we carry the payments ourselves. Every car in the marketplace shows its full out-the-door price, and you can split that exact price into monthly payments without paying a cent of interest.",
+    seeCars: "See the marketplace",
+    howItWorksLink: "How it works",
     onTheLotNow: "On the lot right now",
     allCars: (n: number) => `All ${n} cars →`,
     onTheLotLede:
       "Cars we own, inspected and titled. The price on each card is the out-the-door price — tax, title, registration and doc fee included.",
-    budgetTitle: "Start from your budget, not from a sticker.",
-    budgetLede:
-      "Set your down payment and your monthly ceiling. We solve them backwards — through tax, title and fees — into the cars on our lot that your money actually reaches.",
     howTitle: "How buying here works",
     howLede:
-      "Six steps, and we are on the hook for four of them. That is the difference between a dealership and a marketplace.",
-    waitlistTitle: "Tell us what you're looking for.",
-    waitlistLede:
-      "We buy cars one at a time and the lot turns over quickly. Leave your email and we'll tell you when something that fits your budget lands.",
+      "Six steps, and we are on the hook for four of them. That is the difference between a dealership and a classified ad.",
+    inPerson: "We do this in person",
+    inPersonLede:
+      "You book a time and come to the office. We go through what you actually need, what it should cost, and how you will pay for it — before anything is signed.",
+    openInMaps: "Open in Google Maps →",
   },
 
   steps: [
@@ -90,7 +84,7 @@ export const en = {
   ],
 
   cars: {
-    eyebrow: "Our inventory",
+    eyebrow: "Marketplace",
     title: "Every car we own.",
     lede: "One price per car, and it is the price you actually pay: tax, title, registration and doc fee already in it. Pay it in full or split it over the months you choose with no interest — the payment plan costs the same as the cash price, to the cent.",
     empty:
@@ -115,6 +109,7 @@ export const en = {
 
   card: {
     photosComing: "Photographs being taken",
+    mileageUnknown: "Mileage to be confirmed",
     outTheDoor: "Out the door",
     zeroApr: "0% APR plans",
     notForSale: "not for sale yet",
@@ -133,6 +128,7 @@ export const en = {
     sourcedPrivately: "Sourced privately",
     dealerLot: "Dealer lot",
     miles: "miles",
+    mileageUnknown: "mileage to be confirmed",
     outTheDoorTail: "out the door — tax, title and fees in.",
     notForSaleTitle: "Not for sale yet — we are still buying it.",
     notForSaleBody:
@@ -180,19 +176,15 @@ export const en = {
     interest: "interest",
     monthsWord: "months",
     belowFloor: (amount: string) => `This car needs at least ${amount} down.`,
+    /** Still used by the Auction Access checkout, not by the plan builder. */
+    opening: "Opening checkout…",
+    signIn: "Sign in to continue",
     financed: "Financed",
     interestRow: "Interest",
     youPayInTotal: "You pay in total",
-    payDown: (amount: string) => `Pay ${amount} down`,
-    payInFull: (amount: string) => `Pay ${amount} in full`,
-    signIn: "Sign in to continue",
-    opening: "Opening checkout…",
-    refundNote:
-      "Refundable in full until you sign at your visit. Apple Pay available.",
     comparisonLabel: "Not available here —",
     comparison: (rate: string, monthly: string, extra: string) =>
       `at a typical ${rate} BHPH rate this car would be ${monthly}/mo and cost ${extra} more in interest. That is the money you keep.`,
-    checkoutError: "Something went wrong starting checkout.",
   },
 
   visit: {
@@ -252,34 +244,25 @@ export const en = {
     ],
   },
 
-  budget: {
-    worksheet: "Worksheet",
-    noInterest: "0% APR — no interest",
-    feesIncluded: "tax, title & fees included",
-    cashDownToday: "Cash down today",
-    monthlyCeiling: "Monthly ceiling",
-    ceilingNote:
-      "A ceiling, not a wish. We solve backwards from what you can keep paying — tax, title, registration and doc fee already counted. None of it goes to interest.",
-    canShopUpTo: "You can shop up to",
-    outTheDoorIn: (state: string) =>
-      `Out the door, in ${state} — the whole price, not a sticker you add fees to later. That is a`,
-    carOnce: "car once tax, title and the doc fee come out of it.",
-    seeWhatsOnLot: "See what is on the lot →",
-    nothingFits: "Nothing on the lot fits that budget today. The lot turns over every week —",
-    seeEverything: "see everything we have",
-    carsFit: (n: number) => `${n} ${n === 1 ? "car" : "cars"} on the lot fit`,
-    seeWholeLot: "See the whole lot →",
-  },
-
   waitlist: {
+    title: "Tell us what you're looking for.",
+    lede: "We buy cars one at a time and the lot turns over quickly. Leave your email and we'll tell you when something that fits your budget lands.",
+    emailLabel: "Email address",
+    placeholder: "you@example.com",
+    join: "Subscribe",
+    note: "No credit pull to subscribe. One email when a car that fits lands, nothing else.",
+    invalid: "That doesn't look like a working email address. Check it and try again.",
     onTheList: "You're on the list.",
     weWillEmail: "We'll email",
     whenSomethingLands: "when a car that fits lands on the lot. Nothing else, ever.",
   },
 
   contact: {
-    button: "Contact us",
-    buttonWithQuote: "Send this to us",
+    /** The one call to action on a built plan. Not "pay" — the conversation comes first. */
+    talkToAgent: "Talk to an agent on WhatsApp",
+    talkToAgentNote:
+      "Your plan goes into the message as you built it. An agent confirms the car, the figures and your appointment — nothing is charged from this page.",
+    whatsapp: "WhatsApp",
     greeting: "Hello MGM Auto 👋",
     interestedIn: "I'm interested in this car:",
     myPlan: "The plan I built:",
@@ -296,23 +279,10 @@ export const en = {
   },
 
   footer: {
-    repLabel: "Representative example",
-    repBody: (parts: {
-      otd: string;
-      down: string;
-      financed: string;
-      apr: string;
-      n: number;
-      monthly: string;
-      final: string;
-      total: string;
-      charge: string;
-    }) =>
-      `2014 Mazda3, 69,000 miles, Central Florida. Out-the-door price ${parts.otd} including tax, title, registration, and doc fee. ${parts.down} cash down; amount financed ${parts.financed}; annual percentage rate ${parts.apr}; ${parts.n} monthly payments of ${parts.monthly} and a final payment of ${parts.final}; total of payments ${parts.total}; finance charge ${parts.charge}. Your terms depend on your verified income, residence, and down payment.`,
+    follow: "Follow us",
+    /** One sentence, kept: every consumer-facing surface names the creditor. */
     creditor:
-      "MGM Auto is the seller and the creditor on every vehicle it lists: a licensed motor vehicle dealer and retail installment seller. We buy the cars, we hold the title, and we hold the contract. Nothing is sold on to a third-party lender.",
-    reported:
-      "Vehicle history, mileage, and condition are reported as received from the seller and from our own inspection. All prices in U.S. dollars.",
+      "MGM Auto is the seller and the creditor on every vehicle it lists — a licensed motor vehicle dealer and retail installment seller.",
   },
 };
 

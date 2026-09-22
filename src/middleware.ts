@@ -4,7 +4,7 @@ import { LOCALES, isLocale, localeFromAcceptLanguage } from "@/i18n/config";
 /**
  * Send every member-facing URL to a locale.
  *
- * `/cars` becomes `/es/cars` or `/en/cars` — a redirect, not a rewrite, so the
+ * `/marketplace` becomes `/es/marketplace` or `/en/marketplace` — a redirect, not a rewrite, so the
  * address bar shows the language. That is the whole point of putting the locale
  * in the path: a Spanish ad can link straight to Spanish content, the page can
  * be shared and still be in Spanish, and search engines index both versions

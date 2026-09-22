@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import { apiFetch, ApiError } from "@/lib/api-client";
 import { financingComparison, formatBps, formatMoney } from "@/lib/finance";
 import { dollarsToCents } from "@/lib/money-input";
 import {
@@ -21,7 +19,8 @@ import {
 import type { PriceQuote, RetailListing } from "@/lib/types";
 import { RegZDisclosure } from "./RegZDisclosure";
 import { useI18n } from "@/i18n/client";
-import { usePublishQuote } from "./quote-context";
+import { localePath } from "@/i18n";
+import { WhatsAppLink } from "./DealerContact";
 
 /**
  * Build a payment on one specific car.
@@ -49,6 +48,12 @@ import { usePublishQuote } from "./quote-context";
  *
  *  2. A down payment and a monthly payment are both Reg Z trigger terms, so
  *     <RegZDisclosure /> is not optional here. It ships with the numbers.
+ *
+ * What it does NOT do any more is take money. The call to action on a built
+ * plan is a WhatsApp message to an agent carrying the plan as built — the car,
+ * the down payment, the monthly, the term, the rate and this page's URL. The
+ * down-payment route and its gates still exist server-side; nothing on this
+ * surface calls them. No login is needed to talk to somebody.
  */
 
 /**
@@ -69,9 +74,7 @@ export function PlanPicker({
   listing: RetailListing;
   initialQuote: PriceQuote;
 }) {
-  const { dict } = useI18n();
-  const { authenticated, login } = usePrivy();
-  const publishQuote = usePublishQuote();
+  const { dict, locale } = useI18n();
 
   // The car's price fixes the whole range. Computed from the initial quote,
   // which is server-rendered, so the sliders are correct in the first paint
@@ -97,9 +100,18 @@ export function PlanPicker({
   );
   const [termMonths, setTermMonths] = useState(DEFAULT_TERM_MONTHS);
   const [quote, setQuote] = useState<PriceQuote>(initialQuote);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [reasons, setReasons] = useState<string[] | null>(null);
+
+  /**
+   * This page's absolute URL, for the WhatsApp message. The server render only
+   * knows the path; the origin is filled in after hydration so the HTML the
+   * server sends and the HTML the client expects are the same.
+   */
+  const [pageUrl, setPageUrl] = useState(() =>
+    localePath(locale, `/marketplace/${listing.id}`)
+  );
+  useEffect(() => {
+    setPageUrl(window.location.href.split(/[?#]/)[0]);
+  }, []);
 
   // Re-quote whenever the pair settles. The term is part of the request now:
   // the builder offers any term in range, so the server has to be asked for
@@ -108,11 +120,15 @@ export function PlanPicker({
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const data = await apiFetch<{ quote: PriceQuote }>(
+        // Plain fetch, not `apiFetch`: the quote endpoint is public, and the
+        // API client imports Privy, which would put the whole wallet stack
+        // back on this page's critical path (see privy-deferred.tsx).
+        const res = await fetch(
           `/api/quote?listingId=${encodeURIComponent(listing.id)}` +
-            `&downCents=${downCents}&termMonths=${termMonths}`,
-          { authenticated: false }
+            `&downCents=${downCents}&termMonths=${termMonths}`
         );
+        if (!res.ok) throw new Error(`quote ${res.status}`);
+        const data = (await res.json()) as { quote: PriceQuote };
         if (!cancelled) setQuote(data.quote);
       } catch {
         // Keep the last good quote rather than showing a broken figure.
@@ -132,7 +148,6 @@ export function PlanPicker({
     () => quote.plans.find((p) => p.termMonths === termMonths),
     [quote, termMonths]
   );
-  const cash = quote.plans.find((p) => p.kind === "cash");
   const belowFloor = downCents < quote.minDownCents;
 
   /** What the payment slider can reach, and where its thumb sits right now. */
@@ -179,68 +194,9 @@ export function PlanPicker({
   const settling =
     downCents !== quote.downCents || (plan?.termMonths ?? termMonths) !== termMonths;
 
-  /**
-   * Hand the settled plan to the contact button.
-   *
-   * Only once the server has confirmed it — publishing mid-drag would put a
-   * payment into a WhatsApp message that the page never actually showed. The
-   * figures are the server's, copied rather than recomputed.
-   */
-  useEffect(() => {
-    if (!plan || settling) return;
-    publishQuote({
-      kind: "plan",
-      plan: {
-        url:
-          typeof window !== "undefined"
-            ? window.location.href.split("?")[0]
-            : `/cars/${listing.id}`,
-        vehicle: `${listing.year} ${listing.make} ${listing.model}`,
-        downCents: plan.downCents,
-        monthlyPaymentCents: plan.monthlyPaymentCents,
-        termMonths: plan.termMonths,
-        outTheDoorCents: quote.outTheDoorCents,
-      },
-    });
-    return () => publishQuote(null);
-  }, [plan, settling, quote.outTheDoorCents, listing, publishQuote]);
   const settlingClass = settling
     ? "opacity-50 transition-opacity"
     : "transition-opacity";
-
-  async function startCheckout(kind: "plan" | "cash") {
-    setError(null);
-    setReasons(null);
-
-    if (!authenticated) {
-      login();
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { url } = await apiFetch<{ url: string }>(
-        "/api/checkout/down-payment",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            listingId: listing.id,
-            downCents: kind === "cash" ? quote.outTheDoorCents : downCents,
-            termMonths: kind === "cash" ? 0 : termMonths,
-          }),
-        }
-      );
-      window.location.href = url;
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(e.message);
-        setReasons(e.reasons ?? null);
-      } else {
-        setError(dict.plan.checkoutError);
-      }
-      setLoading(false);
-    }
-  }
 
   return (
     <section className="border border-rule-strong bg-paper-raised">
@@ -412,35 +368,33 @@ export function PlanPicker({
               />
             </dl>
 
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                disabled={loading || belowFloor}
-                onClick={() => startCheckout("plan")}
-                className="flex-1 border border-accent bg-accent px-5 py-3 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-accent-ink hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            {/* The one call to action. The message carries the SETTLED plan —
+                the figures the server returned and this page shows — never a
+                mid-drag guess, so it is dimmed and inert until the quote lands. */}
+            <div
+              className={`mt-4 ${settling || belowFloor ? "pointer-events-none opacity-40" : ""}`}
+              aria-disabled={settling || belowFloor}
+            >
+              <WhatsAppLink
+                payload={{
+                  kind: "plan",
+                  plan: {
+                    url: pageUrl,
+                    vehicle: `${listing.year} ${listing.make} ${listing.model}`,
+                    downCents: plan.downCents,
+                    monthlyPaymentCents: plan.monthlyPaymentCents,
+                    termMonths: plan.termMonths,
+                    outTheDoorCents: quote.outTheDoorCents,
+                  },
+                }}
+                className="flex w-full items-center justify-center gap-2.5 border border-[#0b7a45] bg-[#128c4a] px-5 py-3 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-white hover:opacity-90"
               >
-                {loading
-                  ? dict.plan.opening
-                  : authenticated
-                    ? dict.plan.payDown(formatMoney(plan.downCents))
-                    : dict.plan.signIn}
-              </button>
-              {cash && (
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => startCheckout("cash")}
-                  className="border border-rule-strong bg-paper px-5 py-3 font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent disabled:opacity-40"
-                >
-                  {dict.plan.payInFull(
-                    formatMoney(cash.totalOfPaymentsCents, { cents: true })
-                  )}
-                </button>
-              )}
+                {dict.contact.talkToAgent}
+              </WhatsAppLink>
             </div>
 
             <p className="mt-2 font-serif text-[0.8125rem] leading-snug text-ink-muted">
-              {dict.plan.refundNote}
+              {dict.contact.talkToAgentNote}
             </p>
 
             {/* Reg Z: a stated down payment and a stated monthly payment are
@@ -453,23 +407,6 @@ export function PlanPicker({
               termMonths={plan.termMonths}
             />
 
-            {error && (
-              <div
-                role="alert"
-                className="mt-3 border-l-2 border-accent bg-paper-sunken px-3 py-2"
-              >
-                <p className="font-serif text-[0.875rem] leading-snug text-ink">
-                  {error}
-                </p>
-                {reasons && (
-                  <ul className="mt-1 list-disc pl-5 font-serif text-[0.8125rem] text-ink-muted">
-                    {reasons.map((r) => (
-                      <li key={r}>{r}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
           </>
         )}
       </div>

@@ -225,7 +225,12 @@ export interface RetailListing {
   make: string;
   model: string;
   trim: string;
-  mileage: number;
+  /**
+   * Odometer, in miles. Undefined when nobody has recorded it yet — the lot is
+   * seeded from the dealer's own site, which states a mileage for few cars.
+   * Rendered as "to be confirmed", and it fails underwriting until it is.
+   */
+  mileage?: number;
   titleStatus: TitleStatus;
   transmission: "automatic" | "manual";
   exteriorColor: string;

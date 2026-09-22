@@ -107,6 +107,10 @@ entire market. The thresholds live in `UNDERWRITING` in `src/lib/types.ts`: PTI 
 down ≥ 18% of out-the-door, mileage ≤ 150k, term ≤ 48 months. Changing any of them is a product
 decision, not a refactor.
 
+Mileage may be unknown (migration 0007). The dealer's site states it for few cars, and an invented
+figure in a field underwriting reads and a member sees is a misstatement. Unknown renders as "to
+be confirmed" and fails the gate until somebody records it. Never seed a zero.
+
 Durability score is underwriting, not trivia — a car that breaks in month four is a car that
 stops being paid for.
 
@@ -170,7 +174,7 @@ deliberate: car photographs are the advertisement and have to be CDN-cacheable a
 signed URLs defeat. Writes still run through an admin route. `photoUrl()` in `listing-store.ts` is
 the only place that knows the bucket layout.
 
-`/cars/[id]` is `revalidate = 60`, not statically generated — the set of cars is no longer known at
+`/marketplace/[id]` is `revalidate = 60`, not statically generated — the set of cars is no longer known at
 build time. Sixty seconds of staleness on a marketing page is acceptable **because it is not the
 enforcement boundary**: whether money may actually be taken is re-decided server-side on every
 request in the down-payment route.
@@ -201,6 +205,11 @@ src/lib/types.ts        domain contract — types, defaults, UNDERWRITING thresh
 src/lib/finance.ts      amortization, the budget solver, plans, TILA computation. Pure, tested.
 src/lib/deal-costs.ts   per-state tax/doc/title profiles. TX and FL. Unmapped state = cannot quote.
 src/lib/available-now.ts seed inventory + the no-database fallback. Not the read path.
+src/lib/social.ts       Instagram / Facebook / TikTok links. TikTok is unset until the handle is known.
+scripts/scrape-mgm-lot.mjs  reads the dealer's Wix site into scripts/data/mgm-lot.scraped.json.
+scripts/seed-mgm-lot.mjs    joins that with the hand-curated scripts/data/mgm-lot.json and upserts
+                        the lot + photos. `npm run lot:scrape && npm run lot:seed`. Read its header:
+                        it writes the list price as a PLACEHOLDER acquired price.
 src/lib/dealers.ts      dealer seed + the gates that stop an unonboarded dealer taking money.
 src/lib/dealer-store.ts DB-backed dealer read. The payment gate reads THIS, not the seed.
 src/lib/listing-store.ts DB-backed inventory + photo URLs. The seed is a fallback only.
@@ -217,25 +226,60 @@ src/components/         UI. RegZDisclosure is mandatory wherever a trigger term 
 src/components/CarCard.tsx  one car in the grid. Price and APR only — no monthly figure.
 src/components/InventoryGrid.tsx  client-side sort and budget filter. Reorders, never prices.
 src/components/privy-deferred.tsx  lazy boundary for every Privy component. Import from HERE, not direct.
+src/components/DealerContact.tsx   the WhatsApp number (context) and the link that carries a quote into it.
 supabase/migrations/    schema. The money guardrails are check constraints, not conventions.
 ```
 
 ## One path, one price
 
-`/cars` is the lot and `/cars/[id]` is one car. That is the whole product: a car we already
-own, bought with $2–4k down and interest-free monthly payments, or paid in full. Nothing is
-gated and there is no subscription. Every dollar attached to a car settles to the dealer's
-connected account as a direct charge.
+`/marketplace` is the lot and `/marketplace/[id]` is one car. That is the whole product: a car
+we already own, bought with $2–4k down and interest-free monthly payments, or paid in full.
+Nothing is gated and there is no subscription. Every dollar attached to a car settles to the
+dealer's connected account as a direct charge.
 
-The `/cars` index shows deliverable cars in the main grid and `sourced`/`acquired` cars under a
-separate "On the way" heading, plainly labelled and with no purchase affordance — the same thing
-`/cars/[id]` already says about those rows. `/drop` is a permanent redirect to `/cars` in
-`next.config.ts`; the path was public and is in at least one ad creative.
+**Decided 2026-09-22: the call to action on a built plan is WhatsApp, not checkout.** The plan
+builder hands the settled figures — car, down, monthly, term, rate and the page URL — into a
+`wa.me` message labelled "talk to an agent". Nothing on a member surface calls the down-payment
+route today; the route and its gates stay, because the money path is the part that is hard to
+get right and the day it is switched back on it must not be rebuilt. There is no floating
+contact button: WhatsApp lives beside the quote in `PlanPicker` and in the footer, both through
+`DealerContact.tsx`, which reads the number off the dealer row.
+
+The `/marketplace` index shows deliverable cars in the main grid and `sourced`/`acquired` cars
+under a separate "On the way" heading, plainly labelled and with no purchase affordance — the
+same thing `/marketplace/[id]` already says about those rows. `/cars`, `/cars/[id]`, their
+localised forms and `/drop` are permanent redirects in `next.config.ts`; the paths were public
+and are in at least one ad creative.
+
+The front page states no down payment, no monthly figure and no period of repayment, so it
+carries no Reg Z disclosure. Keep it that way, or bring `<RegZDisclosure />` back with the
+figure. The footer is the subscription form, the social links (`src/lib/social.ts`) and one
+sentence naming the creditor — the representative example that used to live there covered
+trigger terms the site no longer states outside the plan builder.
 
 A car may only be paid for once `status` is `available` or `reserved`. A `sourced` car is one we
 found advertised and the dealer has not bought; collecting against it would be taking money for a
 vehicle nobody holds title to. The check constraint `listing_acquired_has_record` enforces this in
 the database, and the down-payment route refuses before Stripe is ever called.
+
+## How work ships
+
+**Decided 2026-09-22.** Every change goes through the same loop, and the loop is the deliverable
+as much as the code is:
+
+1. **Plan** — say what is changing and why, in a sentence or two, before touching a file.
+2. **Build** on a branch off `main`, never on `main` itself. One branch may carry several
+   features; that is fine. Each feature is its own commit with a message that says what changed
+   and why, so `git log` reads as the history of decisions.
+3. **Test** — the three commands under Verification, plus a local `next start` smoke test of any
+   page you touched. A change that is not verified is not done.
+4. **PR** — push the branch and open a pull request against `main` with a description of what
+   changed, what was verified, and what is still open. Vercel builds a preview from it.
+5. **Merge** once the PR builds green. Merging to `main` is the production deploy.
+
+Commits are not optional in that loop: a pull request is a set of commits, and "several features
+on one branch" means several commits on it, not one commit at the end. Do not push to `main`
+directly, and do not merge a PR whose preview build failed.
 
 ## Verification
 

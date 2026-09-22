@@ -1,16 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { PriceQuote, RetailListing } from "@/lib/types";
-
 /**
  * Lazy boundaries for every component that touches Privy.
  *
  * `@privy-io/react-auth` costs ~726 kB of first-load JS, because the SDK drags
  * the whole wallet stack (@reown/appkit, viem, keccak, x402) along to do email
  * login. Statically imported, that lands on the critical path of the two pages
- * a member actually converts on — measured at 832 kB for /cars/[id] against
- * 106 kB for the same page behind these boundaries.
+ * a member actually converts on — measured at 832 kB for /marketplace/[id]
+ * against 106 kB for the same page behind these boundaries.
+ *
+ * `PlanPicker` is NOT here any more: it hands the plan to WhatsApp rather than
+ * to checkout, so it no longer imports Privy and is imported directly.
  *
  * SSR is deliberately left ON. These components render server-side as before,
  * so the plan figures and their Reg Z disclosure are still in the HTML — only
@@ -29,11 +30,6 @@ function Skeleton({ height }: { height: string }) {
     />
   );
 }
-
-const PlanPickerImpl = dynamic(
-  () => import("./PlanPicker").then((m) => m.PlanPicker),
-  { loading: () => <Skeleton height="h-64" /> }
-);
 
 const VisitSchedulerImpl = dynamic(
   () => import("./VisitScheduler").then((m) => m.VisitScheduler),
@@ -55,17 +51,20 @@ const AdminInventoryImpl = dynamic(
   { loading: () => <Skeleton height="h-96" /> }
 );
 
+const AdminDealerEditorImpl = dynamic(
+  () => import("./AdminDealerEditor").then((m) => m.AdminDealerEditor),
+  { loading: () => <Skeleton height="h-96" /> }
+);
+
+const AdminAdminsImpl = dynamic(
+  () => import("./AdminAdmins").then((m) => m.AdminAdmins),
+  { loading: () => <Skeleton height="h-64" /> }
+);
+
 const AdminCarEditorImpl = dynamic(
   () => import("./AdminCarEditor").then((m) => m.AdminCarEditor),
   { loading: () => <Skeleton height="h-screen" /> }
 );
-
-export function PlanPicker(props: {
-  listing: RetailListing;
-  initialQuote: PriceQuote;
-}) {
-  return <PlanPickerImpl {...props} />;
-}
 
 export function VisitScheduler(props: { listingId: string }) {
   return <VisitSchedulerImpl {...props} />;
@@ -84,6 +83,14 @@ export function AuctionAccessCheckout(props: {
 
 export function AdminInventory() {
   return <AdminInventoryImpl />;
+}
+
+export function AdminDealerEditor() {
+  return <AdminDealerEditorImpl />;
+}
+
+export function AdminAdmins() {
+  return <AdminAdminsImpl />;
 }
 
 export function AdminCarEditor(props: { listingId?: string }) {
