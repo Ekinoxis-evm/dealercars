@@ -1,11 +1,12 @@
 import type { Dictionary } from "@/i18n";
 import type { Dealer } from "@/lib/dealers";
-import { WaitlistForm } from "./WaitlistForm";
 import { WhatsAppLink } from "./DealerContact";
 
 /**
- * Site footer: the subscription, where to find us, and one sentence about who
- * the creditor is.
+ * Site footer: where to find us, and one sentence about who the creditor is.
+ *
+ * There is no subscription form. It collected addresses nothing was ever sent
+ * to, and on a phone it was a form between the member and the WhatsApp button.
  *
  * The representative example that used to live here is gone. It was a Reg Z
  * disclosure for trigger terms the front page no longer states; every surface
@@ -34,20 +35,11 @@ export function SiteFooter({
 
   return (
     <footer className="border-t border-rule-strong bg-paper-sunken">
-      <div className="mx-auto max-w-6xl px-4 pb-10 pt-12 sm:px-6">
-        <div className="grid gap-10 md:grid-cols-[1.2fr_1fr]">
-          {/* ---------------------------------------------- subscription */}
-          <div>
-            <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-              {dict.waitlist.title}
-            </h2>
-            <p className="mt-2 max-w-xl font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-              {dict.waitlist.lede}
-            </p>
-            <div className="mt-5">
-              <WaitlistForm />
-            </div>
-          </div>
+      <div className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <p className="font-display text-sm font-bold uppercase tracking-tight">
+            MGM<span className="text-accent"> Auto</span>
+          </p>
 
           {/* ---------------------------------------------------- social */}
           <div>
@@ -80,7 +72,7 @@ export function SiteFooter({
           </div>
         </div>
 
-        <div className="mt-10 border-t border-rule pt-5">
+        <div className="mt-8 border-t border-rule pt-5">
           <p className="font-serif text-[0.8125rem] leading-relaxed text-ink-muted">
             {dict.footer.creditor}
           </p>

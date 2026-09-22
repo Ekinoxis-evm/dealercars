@@ -156,6 +156,7 @@ export const es: Dictionary = {
     owners: "Dueños",
     unknown: "Sin datos",
     transmission: "Transmisión",
+    transmissions: { automatic: "automática", manual: "manual" },
     vin: "VIN",
     vinNotPublished: "No publicado",
     vehicle: "Vehículo",
@@ -252,20 +253,6 @@ export const es: Dictionary = {
       "Impuesto, título y placas, que se cotizan cuando se gana un auto",
       "Cualquier garantía de ganar un auto específico a un precio específico",
     ],
-  },
-
-  waitlist: {
-    title: "Dinos qué estás buscando.",
-    lede: "Compramos los autos uno por uno y el lote se mueve rápido. Déjanos tu correo y te avisamos cuando llegue algo que entre en tu presupuesto.",
-    emailLabel: "Correo electrónico",
-    placeholder: "tu@correo.com",
-    join: "Suscribirme",
-    note: "Sin consulta de crédito para suscribirte. Un correo cuando llegue un auto que te sirva, nada más.",
-    invalid: "Ese correo no parece válido. Revísalo e inténtalo de nuevo.",
-    onTheList: "Ya estás en la lista.",
-    weWillEmail: "Le escribimos a",
-    whenSomethingLands:
-      "cuando llegue al lote un auto que te sirva. Nada más, nunca.",
   },
 
   contact: {

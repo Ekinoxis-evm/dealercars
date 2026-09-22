@@ -4,8 +4,6 @@ import { loadListing } from "@/lib/listing-store";
 import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { minDownFor, quoteListing, formatMoney } from "@/lib/finance";
 import { DEFAULT_TERM_MONTHS, clampDown, downBounds } from "@/lib/payment-slider";
-import { loadDealer } from "@/lib/dealer-store";
-import { creditBlockReason } from "@/lib/dealers";
 import { VisitScheduler } from "@/components/privy-deferred";
 import { PlanPicker } from "@/components/PlanPicker";
 import { CarGallery } from "@/components/CarGallery";
@@ -59,7 +57,6 @@ export default async function CarPage({
   const listing = await loadListing(id);
   if (!listing) notFound();
 
-  const dealer = await loadDealer(listing.dealerId);
   const priceable = hasDealCostsFor(listing.state);
   const costs = dealCostsFor(listing.state);
   // Quote at the down payment the slider will actually start on, not at the
@@ -76,10 +73,10 @@ export default async function CarPage({
     DEFAULT_TERM_MONTHS,
   ]);
 
-  // The credit gate: this page offers payment plans. A dealer who may sell for
-  // cash but not on credit is told exactly that, rather than being refused
-  // outright.
-  const blockReason = dealer ? creditBlockReason(dealer) : "No dealer is assigned to this car.";
+  // No credit-gate banner here any more: the page hands the plan to WhatsApp
+  // and takes no money, so "this dealer cannot accept charges" would be a
+  // statement about a button that is not on the page. The gate still runs
+  // server-side in the down-payment route for the day it is switched back on.
   const isSourced = listing.status === "sourced";
 
   return (
@@ -100,7 +97,7 @@ export default async function CarPage({
             listing.mileage === undefined
               ? t.car.mileageUnknown
               : `${listing.mileage.toLocaleString("en-US")} ${t.car.miles}`,
-            listing.transmission,
+            t.car.transmissions[listing.transmission],
             [listing.exteriorColor, listing.interiorColor].filter(Boolean).join(" / "),
           ]
             .filter(Boolean)
@@ -131,14 +128,6 @@ export default async function CarPage({
           </h2>
           <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
             {t.car.notForSaleBody}
-          </p>
-        </div>
-      )}
-
-      {blockReason && !isSourced && (
-        <div className="mt-6 border-l-2 border-accent bg-paper-raised px-4 py-3 sm:px-6">
-          <p className="font-serif text-[0.875rem] leading-snug text-ink-muted">
-            {blockReason}
           </p>
         </div>
       )}
@@ -180,7 +169,7 @@ export default async function CarPage({
                 value={listing.titleStatus === "clean" ? t.car.titleCleanToVerify : listing.titleStatus}
               />
               <Fact label={t.car.owners} value={listing.ownerCount ? String(listing.ownerCount) : t.car.unknown} />
-              <Fact label={t.car.transmission} value={listing.transmission} />
+              <Fact label={t.car.transmission} value={t.car.transmissions[listing.transmission]} />
               <Fact label={t.car.vin} value={listing.vin ?? t.car.vinNotPublished} />
             </dl>
           </Card>

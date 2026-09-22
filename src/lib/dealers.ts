@@ -66,9 +66,9 @@ export const DEALERS: Dealer[] = [
     streetAddress: "5624 S Orange Blossom Trail",
     postalCode: "33848",
     whatsapp: "17868671441",
-    instagramUrl: "https://www.instagram.com/mgmautoauctions",
+    instagramUrl: "https://www.instagram.com/mgm_autobroker/",
     facebookUrl: "https://www.facebook.com/profile.php?id=61570312161926",
-    tiktokUrl: undefined,
+    tiktokUrl: "https://www.tiktok.com/@mgmautobroker",
     // A connected account exists (test mode), but nothing else does: no licence
     // on file, and Stripe has not enabled charges because onboarding is
     // unfinished. This dealer cannot sell, cannot hold paper, and cannot take a

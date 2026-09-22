@@ -12,8 +12,11 @@ export function SiteHeader({
   const p = (path: string) => localePath(locale, path);
 
   return (
-    <header className="border-b border-rule-strong bg-paper">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    // Sticky: on a phone the member is scrolling a long grid, and the way back
+    // to the lot or their account should not be at the top of it. z-40 sits
+    // above the map iframe and the gallery.
+    <header className="sticky top-0 z-40 border-b border-rule-strong bg-paper">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:gap-4 sm:px-6 sm:py-3">
         <Link href={p("/")} className="flex items-center" aria-label={dict.nav.home}>
           {/* The logo is dark-ground artwork: its silver stroke vanishes on a
               light surface. The plate is a FIXED dark value, not `bg-ink` —
@@ -26,11 +29,11 @@ export function SiteHeader({
             alt="MGM Auto"
             width={791}
             height={436}
-            className="h-9 w-auto bg-[#14171a] px-2 py-1 sm:h-10"
+            className="h-8 w-auto bg-[#14171a] px-2 py-1 sm:h-10"
           />
         </Link>
 
-        <nav className="flex items-center gap-3 sm:gap-5">
+        <nav className="flex items-center gap-2.5 sm:gap-5">
           <Link
             href={p("/marketplace")}
             className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink-muted underline-offset-4 hover:text-ink hover:underline"
@@ -48,7 +51,7 @@ export function SiteHeader({
 
           <Link
             href={p("/account")}
-            className="border border-rule-strong bg-paper-raised px-3 py-1.5 font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent"
+            className="whitespace-nowrap border border-rule-strong bg-paper-raised px-2.5 py-1.5 font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent sm:px-3 sm:text-[0.8125rem]"
           >
             {dict.nav.account}
           </Link>
