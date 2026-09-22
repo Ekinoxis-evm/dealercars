@@ -49,3 +49,6 @@ next-env.d.ts
 .env*.local
 # ...but the template belongs in the repo.
 !.env.example
+
+# playwright mcp scratch output
+.playwright-mcp/

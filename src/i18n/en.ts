@@ -147,6 +147,7 @@ export const en = {
     owners: "Owners",
     unknown: "Unknown",
     transmission: "Transmission",
+    transmissions: { automatic: "automatic", manual: "manual" } as Record<"automatic" | "manual", string>,
     vin: "VIN",
     vinNotPublished: "Not published",
     vehicle: "Vehicle",
@@ -242,19 +243,6 @@ export const en = {
       "Tax, title and registration, which are quoted once a car is won",
       "Any guarantee that a specific car will be won at a specific price",
     ],
-  },
-
-  waitlist: {
-    title: "Tell us what you're looking for.",
-    lede: "We buy cars one at a time and the lot turns over quickly. Leave your email and we'll tell you when something that fits your budget lands.",
-    emailLabel: "Email address",
-    placeholder: "you@example.com",
-    join: "Subscribe",
-    note: "No credit pull to subscribe. One email when a car that fits lands, nothing else.",
-    invalid: "That doesn't look like a working email address. Check it and try again.",
-    onTheList: "You're on the list.",
-    weWillEmail: "We'll email",
-    whenSomethingLands: "when a car that fits lands on the lot. Nothing else, ever.",
   },
 
   contact: {
