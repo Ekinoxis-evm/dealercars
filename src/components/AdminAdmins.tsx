@@ -88,8 +88,8 @@ export function AdminAdmins() {
       <form onSubmit={add} className="border border-rule-strong bg-paper-raised px-4 py-4 sm:px-6">
         <h2 className="font-display text-lg font-extrabold tracking-tight">Add an admin</h2>
         <p className="mt-1 font-serif text-[0.875rem] leading-snug text-ink-muted">
-          They sign in with this email — Google or the email code — and are an admin
-          from that moment. Nothing to send them; the address is the invitation.
+          They sign in with this email and its code, and are an admin from that
+          moment. Nothing to send them; the address is the invitation.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1.5fr_1fr_auto] sm:items-end">
           <label className="block">
