@@ -38,15 +38,17 @@ export async function verifiedDid(token: string | null): Promise<string | null> 
 /**
  * The verified email behind a DID, lower-cased, or null.
  *
- * Privy verifies the address at login (email OTP, or Google's own claim), so
- * this is the one email we are prepared to match an admin invitation against.
+ * Privy verifies the address at login by email code, so this is the one email
+ * we are prepared to match an admin invitation against. A passkey-only session
+ * has no email and cannot bind an invitation — the person signs in with the
+ * email once, and can use their passkey from then on.
  * It is a call to Privy, so it is made only when a DID has no admin row yet —
  * the ordinary request path never pays for it.
  */
 export async function verifiedEmail(did: string): Promise<string | null> {
   try {
     const user = await privyClient().getUser(did);
-    const address = user.email?.address ?? user.google?.email ?? null;
+    const address = user.email?.address ?? null;
     return address ? address.trim().toLowerCase() : null;
   } catch {
     return null;

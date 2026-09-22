@@ -123,8 +123,10 @@ risk that does not exist in the underlying transaction.
 
 ## Auth: Privy for login, Supabase for data
 
-**Decided 2026-08-26, overriding the previous "no Privy" rule.** Privy issues the session
-(email, SMS, Google); a `profiles` row keyed by Privy DID holds everything else. Two things follow
+**Decided 2026-08-26, overriding the previous "no Privy" rule.** Privy issues the session; a
+`profiles` row keyed by Privy DID holds everything else. **Login is email and passkey only
+(decided 2026-09-22)** — no SMS, no Google. Email is the identity an admin invitation is matched
+against and where statements go; a passkey is a faster way back into the same account. Two things follow
 and neither is optional:
 
 - **Wallets are off.** `embeddedWallets.{ethereum,solana}.createOnLogin: 'off'` and an empty
