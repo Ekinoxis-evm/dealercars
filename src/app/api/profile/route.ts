@@ -61,12 +61,31 @@ export async function PATCH(request: Request) {
     update[column] = value.trim();
   };
 
-  text("fullName", "full_name");
+  text("firstName", "first_name", 80);
+  text("lastName", "last_name", 80);
   text("addressLine1", "address_line1");
   text("addressLine2", "address_line2");
   text("city", "city", 100);
   text("postalCode", "postal_code", 12);
+  text("county", "county", 100);
   text("employerName", "employer_name");
+
+  // full_name is derived, never typed: the two parts are what the wizard asks
+  // for, and everything that prints a name reads the joined form.
+  if (update.first_name !== undefined || update.last_name !== undefined) {
+    const first = (update.first_name ?? member.firstName ?? "") as string;
+    const last = (update.last_name ?? member.lastName ?? "") as string;
+    update.full_name = [first, last].filter(Boolean).join(" ") || null;
+  }
+
+  // The phone arrives already in E.164 from the form; anything else is refused
+  // rather than guessed at, because a wrong digit here is a missed appointment.
+  if (body.phone !== undefined) {
+    if (body.phone === null || body.phone === "") update.phone = null;
+    else if (typeof body.phone !== "string" || !/^\+[1-9]\d{7,14}$/.test(body.phone)) {
+      errors.push("phone must be an international number like +14075551234");
+    } else update.phone = body.phone;
+  }
 
   if (body.state !== undefined) {
     const state = String(body.state).toUpperCase();

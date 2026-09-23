@@ -22,8 +22,8 @@ export class Unauthorized extends Error {
 
 /** Column list for every profile read, so the mapper below never gets a surprise. */
 const PROFILE_COLUMNS = `
-  id, user_id, email, phone, full_name,
-  address_line1, address_line2, city, state, postal_code,
+  id, user_id, email, phone, first_name, last_name, full_name,
+  address_line1, address_line2, city, state, postal_code, county,
   employment_type, employer_name, months_at_employer, gross_monthly_income_cents,
   income_verification, identity_verification, residence_verification,
   stated_down_cents, stated_monthly_cents,
@@ -37,12 +37,15 @@ function toProfile(row: any): MemberProfile {
     userId: row.user_id,
     email: row.email ?? undefined,
     phone: row.phone ?? undefined,
+    firstName: row.first_name ?? undefined,
+    lastName: row.last_name ?? undefined,
     fullName: row.full_name ?? undefined,
     addressLine1: row.address_line1 ?? undefined,
     addressLine2: row.address_line2 ?? undefined,
     city: row.city ?? undefined,
     state: row.state ?? undefined,
     postalCode: row.postal_code ?? undefined,
+    county: row.county ?? undefined,
     employmentType: row.employment_type ?? undefined,
     employerName: row.employer_name ?? undefined,
     monthsAtEmployer: row.months_at_employer ?? undefined,
