@@ -1,25 +1,38 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { ProfileForm } from "@/components/privy-deferred";
+import { getDictionary, isLocale } from "@/i18n";
 
-export const metadata: Metadata = {
-  title: "Your account — DealerCars",
-  description:
-    "Your details and your budget. Underwriting here is capacity, not credit score.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = getDictionary(isLocale(locale) ? locale : "es");
+  return { title: t.account.metaTitle, description: t.account.lede, robots: { index: false } };
+}
 
-export default function AccountPage() {
+export default async function AccountPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
+  const t = getDictionary(locale);
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
       <header className="border-b border-rule-strong pb-6">
         <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-ink-faint">
-          Your account
+          {t.account.eyebrow}
         </p>
         <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-          Your file
+          {t.account.title}
         </h1>
         <p className="mt-2 max-w-prose font-serif text-lg leading-relaxed text-ink-muted">
-          We never ask for a credit score. What matters is what you earn, what
-          you can put down, and whether the payment leaves room for a bad month.
+          {t.account.lede}
         </p>
       </header>
 

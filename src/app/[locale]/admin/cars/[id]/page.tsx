@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AdminCarEditor } from "@/components/privy-deferred";
 
 export const metadata: Metadata = {
-  title: "Edit car — DealerCars",
+  title: "Edit car — MGM Auto admin",
   robots: { index: false, follow: false },
 };
 

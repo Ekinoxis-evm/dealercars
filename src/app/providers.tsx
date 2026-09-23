@@ -33,6 +33,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         embeddedWallets: {
           ethereum: { createOnLogin: "off" },
           solana: { createOnLogin: "off" },
+          // No wallet screens of any kind, even if a wallet somehow exists:
+          // a member signing in to buy a car must never be shown an address.
+          showWalletUIs: false,
         },
         appearance: {
           theme: "light",
