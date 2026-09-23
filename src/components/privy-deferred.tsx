@@ -36,6 +36,11 @@ const ProfileFormImpl = dynamic(
   { loading: () => <Skeleton height="h-96" /> }
 );
 
+const AdminShellImpl = dynamic(
+  () => import("./AdminShell").then((m) => m.AdminShell),
+  { loading: () => <Skeleton height="h-64" /> }
+);
+
 const AdminInventoryImpl = dynamic(
   () => import("./AdminInventory").then((m) => m.AdminInventory),
   { loading: () => <Skeleton height="h-96" /> }
@@ -58,6 +63,10 @@ const AdminCarEditorImpl = dynamic(
 
 export function ProfileForm() {
   return <ProfileFormImpl />;
+}
+
+export function AdminShell({ children }: { children: React.ReactNode }) {
+  return <AdminShellImpl>{children}</AdminShellImpl>;
 }
 
 export function AdminInventory() {

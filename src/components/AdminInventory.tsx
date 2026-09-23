@@ -34,7 +34,7 @@ const STATUS_TONE: Record<ListingStatus, string> = {
 };
 
 export function AdminInventory() {
-  const { ready, authenticated, login } = usePrivy();
+  const { ready, authenticated } = usePrivy();
   const [listings, setListings] = useState<RetailListing[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
@@ -60,26 +60,9 @@ export function AdminInventory() {
     load();
   }, [ready, authenticated, load]);
 
-  if (!ready) return <p className="font-serif text-ink-muted">Loading&hellip;</p>;
-
-  if (!authenticated) {
-    return (
-      <div className="border border-rule-strong bg-paper-raised px-4 py-5 sm:px-6">
-        <h2 className="font-display text-lg font-extrabold tracking-tight">
-          Sign in to manage inventory
-        </h2>
-        <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-          Admin access is granted per person, not by a shared password.
-        </p>
-        <button
-          type="button"
-          onClick={login}
-          className="mt-4 bg-accent px-4 py-2 font-display text-sm font-bold tracking-tight text-accent-ink"
-        >
-          Sign in
-        </button>
-      </div>
-    );
+  // Signed-out visitors never reach this: AdminShell shows the sign-in instead.
+  if (!ready || !authenticated) {
+    return <p className="font-serif text-ink-muted">Loading&hellip;</p>;
   }
 
   if (forbidden) {
