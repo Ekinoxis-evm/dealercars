@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import type { Dealer } from "@/lib/dealers";
 import { AdminGate } from "./AdminGate";
@@ -47,7 +47,8 @@ function fromDealer(d: Dealer): Form {
  * they are set by verification and by Stripe's webhook, not typed in here.
  */
 export function AdminDealerEditor() {
-  const { ready, authenticated } = usePrivy();
+  const { ready, user } = useAuth();
+  const authenticated = user !== null;
   const [dealer, setDealer] = useState<Dealer | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [forbidden, setForbidden] = useState(false);

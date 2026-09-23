@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { centsToInput, dollarsToCents } from "@/lib/money-input";
 import { SUPPORTED_STATES } from "@/lib/deal-costs";
@@ -82,7 +82,8 @@ const EMPTY: FormState = {
 };
 
 export function AdminCarEditor({ listingId }: { listingId?: string }) {
-  const { ready, authenticated, login } = usePrivy();
+  const { ready, user } = useAuth();
+  const authenticated = user !== null;
   const router = useRouter();
 
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -266,24 +267,8 @@ export function AdminCarEditor({ listingId }: { listingId?: string }) {
     }
   }
 
-  if (!ready) return <p className="font-serif text-ink-muted">Loading&hellip;</p>;
-
-  if (!authenticated) {
-    return (
-      <div className="border border-rule-strong bg-paper-raised px-4 py-5 sm:px-6">
-        <p className="font-serif text-[0.9375rem] text-ink-muted">
-          Sign in to edit inventory.
-        </p>
-        <button
-          type="button"
-          onClick={login}
-          className="mt-3 bg-accent px-4 py-2 font-display text-sm font-bold tracking-tight text-accent-ink"
-        >
-          Sign in
-        </button>
-      </div>
-    );
-  }
+  // Signed-out visitors never reach this: AdminShell shows the sign-in instead.
+  if (!ready || !authenticated) return <p className="font-serif text-ink-muted">Loading&hellip;</p>;
 
   if (!loaded) return <p className="font-serif text-ink-muted">Loading&hellip;</p>;
 

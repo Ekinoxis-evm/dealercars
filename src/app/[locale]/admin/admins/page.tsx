@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminAdmins } from "@/components/privy-deferred";
+import { AdminAdmins } from "@/components/AdminAdmins";
 import { AdminNav } from "@/components/AdminNav";
 
 export const metadata: Metadata = {

@@ -1,11 +1,11 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
 
 /**
  * The sign-in and not-an-admin states every admin screen shares.
  *
- * Renders the children only once Privy is ready and the person is signed in;
+ * Renders the children only once the session is known and the person is signed in;
  * the screen itself finds out whether they are an admin from the first API
  * call and hands `forbidden` back here.
  */
@@ -18,7 +18,8 @@ export function AdminGate({
   forbidden: boolean;
   children: React.ReactNode;
 }) {
-  const { ready, authenticated } = usePrivy();
+  const { ready, user } = useAuth();
+  const authenticated = user !== null;
 
   // Signed-out visitors never reach this: AdminShell shows the sign-in
   // instead of the page. This only decides between "checking" and "no".

@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabaseAdmin()
     .from("listings")
-    .insert({ ...parsed.value, updated_by: admin.admin.privyDid })
+    .insert({ ...parsed.value, updated_by: admin.admin.id })
     .select("id")
     .single();
 

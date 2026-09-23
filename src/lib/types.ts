@@ -322,16 +322,16 @@ export type EmploymentType =
   | "self_employed";
 
 /**
- * The member. Keyed by Privy DID for login, stored in Postgres for everything
- * else — Privy owns the session, Supabase owns the record.
+ * The member. Keyed by the Supabase Auth user for login, stored in `profiles`
+ * for everything else.
  *
  * Nothing here is client-writable. Income and residence drive underwriting, so
  * they are written server-side only, after verification.
  */
 export interface MemberProfile {
   id: string;
-  /** Privy decentralized identifier, e.g. "did:privy:abc123". The login key. */
-  privyDid: string;
+  /** Supabase Auth user id. The login key. */
+  userId: string;
   email?: string;
   phone?: string;
   fullName?: string;

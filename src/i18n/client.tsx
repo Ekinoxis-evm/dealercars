@@ -10,7 +10,7 @@ import { getDictionary } from "./index";
  *
  * Server components take the dictionary as an argument, which is the simple
  * case. Client components are the awkward one: `PlanPicker`, `VisitScheduler`
- * and the rest sit several levels below a page, behind a lazy boundary, and
+ * and the rest sit several levels below a page, and
  * threading a `dict` prop through every one of them would put translation
  * plumbing in signatures that are otherwise about cars and money.
  *

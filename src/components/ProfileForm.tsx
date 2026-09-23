@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
+import { SignIn } from "./SignIn";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { centsToInput, dollarsToCents } from "@/lib/money-input";
 import { formatMoney } from "@/lib/finance";
@@ -31,7 +32,8 @@ const EMPLOYMENT_TYPES: EmploymentType[] = [
  * in remains "unverified" until it is actually proved.
  */
 export function ProfileForm() {
-  const { ready, authenticated, login, user } = usePrivy();
+  const { ready, user, signOut } = useAuth();
+  const authenticated = user !== null;
   const { dict } = useI18n();
   const t = dict.account;
 
@@ -144,20 +146,11 @@ export function ProfileForm() {
 
   if (!authenticated) {
     return (
-      <div className="border border-rule-strong bg-paper-raised px-4 py-6 sm:px-6">
-        <h2 className="font-display text-lg font-extrabold tracking-tight">
-          {t.signInTitle}
-        </h2>
-        <p className="mt-1 max-w-prose font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
+      <div className="max-w-md">
+        <SignIn title={t.signInTitle} />
+        <p className="mt-3 max-w-prose font-serif text-[0.875rem] leading-relaxed text-ink-muted">
           {t.signInLede}
         </p>
-        <button
-          type="button"
-          onClick={login}
-          className="mt-4 border border-accent bg-accent px-5 py-2.5 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-accent-ink hover:opacity-90"
-        >
-          {t.signIn}
-        </button>
       </div>
     );
   }
@@ -171,12 +164,21 @@ export function ProfileForm() {
         <h2 className="font-display text-lg font-extrabold tracking-tight">
           {t.yourDetails}
         </h2>
-        {/* The email, or nothing. Never the Privy DID or anything that looks
+        {/* The email, or nothing. Never a user id or anything that looks
             like an address: a member is here to buy a car. */}
-        {user?.email?.address && (
-          <p className="mt-1 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-            {t.signedInAs}{" "}
-            <span className="font-mono text-[0.875rem] text-ink">{user.email.address}</span>
+        {user?.email && (
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-3 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
+            <span>
+              {t.signedInAs}{" "}
+              <span className="font-mono text-[0.875rem] text-ink">{user.email}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-muted underline underline-offset-4 hover:text-accent"
+            >
+              {t.signOut}
+            </button>
           </p>
         )}
       </header>

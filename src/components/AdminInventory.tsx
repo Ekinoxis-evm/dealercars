@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { formatMoney } from "@/lib/finance";
 import type { ListingStatus, RetailListing } from "@/lib/types";
@@ -34,7 +34,8 @@ const STATUS_TONE: Record<ListingStatus, string> = {
 };
 
 export function AdminInventory() {
-  const { ready, authenticated } = usePrivy();
+  const { ready, user } = useAuth();
+  const authenticated = user !== null;
   const [listings, setListings] = useState<RetailListing[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);

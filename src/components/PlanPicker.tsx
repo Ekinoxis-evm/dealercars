@@ -122,9 +122,7 @@ export function PlanPicker({
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        // Plain fetch, not `apiFetch`: the quote endpoint is public, and the
-        // API client imports Privy, which would put the whole wallet stack
-        // back on this page's critical path (see privy-deferred.tsx).
+        // Plain fetch: the quote endpoint is public and needs no session.
         const res = await fetch(
           `/api/quote?listingId=${encodeURIComponent(listing.id)}` +
             `&downCents=${downCents}&termMonths=${termMonths}`

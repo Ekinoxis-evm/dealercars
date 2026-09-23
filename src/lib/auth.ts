@@ -1,16 +1,17 @@
 import "server-only";
 import type { MemberProfile } from "./types";
 import { supabaseAdmin } from "./supabase";
-import { accessTokenFrom, privyClient, verifiedDid } from "./privy-server";
+import { sessionEmail, sessionUser } from "./session";
 
 /**
  * The authentication chokepoint.
  *
- * Privy owns the session, Supabase owns the record, and this is the single
- * place the two are joined. Because the service-role key bypasses RLS, the
- * profile id returned here is the ONLY id a route may scope its queries by —
- * a profile id, listing id, or deal id taken from a request body is attacker
- * input and must always be re-checked against this profile.
+ * Supabase Auth owns the session (email and a one-time code or link, nothing
+ * else) and the `profiles` table owns the record; this is the single place the
+ * two are joined. Because the service-role key bypasses RLS, the profile id
+ * returned here is the ONLY id a route may scope its queries by — a profile
+ * id, listing id, or deal id taken from a request body is attacker input and
+ * must always be re-checked against this profile.
  */
 export class Unauthorized extends Error {
   constructor(message = "Not signed in") {
@@ -21,7 +22,7 @@ export class Unauthorized extends Error {
 
 /** Column list for every profile read, so the mapper below never gets a surprise. */
 const PROFILE_COLUMNS = `
-  id, privy_did, email, phone, full_name,
+  id, user_id, email, phone, full_name,
   address_line1, address_line2, city, state, postal_code,
   employment_type, employer_name, months_at_employer, gross_monthly_income_cents,
   income_verification, identity_verification, residence_verification,
@@ -33,7 +34,7 @@ const PROFILE_COLUMNS = `
 function toProfile(row: any): MemberProfile {
   return {
     id: row.id,
-    privyDid: row.privy_did,
+    userId: row.user_id,
     email: row.email ?? undefined,
     phone: row.phone ?? undefined,
     fullName: row.full_name ?? undefined,
@@ -64,49 +65,37 @@ function toProfile(row: any): MemberProfile {
 /**
  * Resolve the signed-in member, creating the profile row on first sight.
  *
- * The contact details are read from Privy rather than from the client, because
- * the client can claim any email it likes and Privy has actually verified the
- * one it holds.
+ * The email is taken from the verified session rather than from the client,
+ * because the client can claim any address it likes and Supabase has actually
+ * verified the one on the session.
  */
 export async function requireMember(request: Request): Promise<MemberProfile> {
-  const did = await verifiedDid(accessTokenFrom(request));
-  if (!did) throw new Unauthorized();
+  const user = await sessionUser(request);
+  if (!user) throw new Unauthorized();
 
   const db = supabaseAdmin();
   const existing = await db
     .from("profiles")
     .select(PROFILE_COLUMNS)
-    .eq("privy_did", did)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (existing.error) throw existing.error;
   if (existing.data) return toProfile(existing.data);
 
-  // First sight of this DID. Seed the row from Privy's verified contacts.
-  let email: string | undefined;
-  let phone: string | undefined;
-  try {
-    const user = await privyClient().getUser(did);
-    email = user.email?.address;
-    phone = user.phone?.number;
-  } catch {
-    // A rate limit or outage here must not block sign-in. The profile form
-    // collects contact details anyway; this is only a convenience prefill.
-  }
-
   const created = await db
     .from("profiles")
-    .insert({ privy_did: did, email, phone })
+    .insert({ user_id: user.id, email: sessionEmail(user) ?? undefined })
     .select(PROFILE_COLUMNS)
     .single();
 
   if (created.error) {
     // Two tabs racing the first request both insert; the unique index on
-    // privy_did means one loses. Re-read rather than fail.
+    // user_id means one loses. Re-read rather than fail.
     const reread = await db
       .from("profiles")
       .select(PROFILE_COLUMNS)
-      .eq("privy_did", did)
+      .eq("user_id", user.id)
       .maybeSingle();
     if (reread.data) return toProfile(reread.data);
     throw created.error;

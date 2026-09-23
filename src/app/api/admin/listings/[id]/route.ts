@@ -69,7 +69,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const { error } = await db
     .from("listings")
-    .update({ ...parsed.value, updated_by: admin.admin.privyDid })
+    .update({ ...parsed.value, updated_by: admin.admin.id })
     .eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,23 +1,18 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
-import { accessTokenFrom, verifiedDid, verifiedEmail } from "./privy-server";
+import { sessionEmail, sessionUser } from "./session";
 
 /**
  * Who may write inventory, edit the dealer, and add other admins.
  *
- * This used to be a shared bearer secret (DEALER_ADMIN_TOKEN), which was a
- * reasonable guard for a single curl-only endpoint and is not a reasonable
- * guard for a UI somebody signs into every day. A shared secret cannot be
- * revoked for one person, cannot say who changed a price, and ends up pasted
- * into a browser console because that is the only way to use it.
- *
- * So admin access is a row in `admins`. At request time the identity that is
- * trusted is the Privy DID — the same verified identity the member routes use.
- * A row may also be created ahead of time with only an EMAIL (an invitation,
- * added from the admin screen); the first time a Privy session whose verified
- * email matches signs in, the DID is bound to that row here and it behaves
- * like any other admin from then on. The email is honoured only because Privy
- * has verified it — a client-supplied email would be attacker input.
+ * Admin access is a row in `admins`. At request time the identity that is
+ * trusted is the Supabase Auth user on the session — the same verified
+ * identity the member routes use. A row may also be created ahead of time
+ * with only an EMAIL (an invitation, added from the admin screen); the first
+ * time a session whose verified email matches signs in, the user id is bound
+ * to that row here and it behaves like any other admin from then on. The
+ * email is honoured only because Supabase verified it at sign-in — a
+ * client-supplied email would be attacker input.
  *
  * What this protects is not cosmetic. These routes set the retail price of a
  * car and flip a listing to `available`, which is the state in which the
@@ -25,7 +20,7 @@ import { accessTokenFrom, verifiedDid, verifiedEmail } from "./privy-server";
  */
 export interface AdminIdentity {
   id: string;
-  privyDid: string;
+  userId: string;
   label: string;
 }
 
@@ -37,35 +32,35 @@ const forbidden = () =>
   ({ ok: false, response: Response.json({ error: "Forbidden" }, { status: 403 }) }) as const;
 
 export async function requireAdmin(request: Request): Promise<AdminCheck> {
-  const did = await verifiedDid(accessTokenFrom(request));
-  if (!did) {
+  const user = await sessionUser(request);
+  if (!user) {
     return { ok: false, response: Response.json({ error: "Not signed in" }, { status: 401 }) };
   }
 
   const db = supabaseAdmin();
   const { data, error } = await db
     .from("admins")
-    .select("id, privy_did, label")
-    .eq("privy_did", did)
+    .select("id, user_id, label")
+    .eq("user_id", user.id)
     .maybeSingle();
 
   // A database error here must not read as "authorized". Fail closed and say
   // as little as possible about why.
   if (error) return forbidden();
-  if (data) return { ok: true, admin: { id: data.id, privyDid: data.privy_did, label: data.label } };
+  if (data) return { ok: true, admin: { id: data.id, userId: data.user_id, label: data.label } };
 
-  // No row for this DID. Is there an invitation for the verified email?
-  const email = await verifiedEmail(did);
+  // No row for this user. Is there an invitation for the verified email?
+  const email = sessionEmail(user);
   if (!email) return forbidden();
 
   const { data: bound, error: bindError } = await db
     .from("admins")
-    .update({ privy_did: did, bound_at: new Date().toISOString() })
+    .update({ user_id: user.id, bound_at: new Date().toISOString() })
     .eq("email", email)
-    .is("privy_did", null)
-    .select("id, privy_did, label")
+    .is("user_id", null)
+    .select("id, user_id, label")
     .maybeSingle();
 
   if (bindError || !bound) return forbidden();
-  return { ok: true, admin: { id: bound.id, privyDid: bound.privy_did, label: bound.label } };
+  return { ok: true, admin: { id: bound.id, userId: bound.user_id, label: bound.label } };
 }

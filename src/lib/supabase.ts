@@ -7,12 +7,13 @@ import { serverEnv } from "./env";
  *
  * This key BYPASSES row level security. That is deliberate — the schema enables
  * RLS with no permissive policies for `anon` or `authenticated`, because the
- * session is issued by Privy and there is no Supabase JWT to key a policy on
+ * browser never queries tables: the publishable key is for the session only,
+ * and every read and write goes through a route handler
  * (see the RLS notes in supabase/migrations/0001_init.sql).
  *
  * The consequence is that RLS protects nothing inside a route handler. Every
- * query MUST be scoped by hand to the profile id resolved from a VERIFIED Privy
- * access token. `requireMember()` in auth.ts is the only sanctioned way to get
+ * query MUST be scoped by hand to the profile id resolved from a VERIFIED
+ * session cookie. `requireMember()` in auth.ts is the only sanctioned way to get
  * that id; do not read a profile id out of a request body.
  */
 let cached: SupabaseClient | null = null;

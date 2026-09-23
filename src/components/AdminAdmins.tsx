@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { AdminGate } from "./AdminGate";
 
@@ -11,7 +11,7 @@ const INPUT =
 interface AdminRow {
   id: string;
   email: string | null;
-  privy_did: string | null;
+  user_id: string | null;
   label: string;
   bound_at: string | null;
   created_at: string;
@@ -25,7 +25,8 @@ interface AdminRow {
  * with the address yet.
  */
 export function AdminAdmins() {
-  const { ready, authenticated } = usePrivy();
+  const { ready, user } = useAuth();
+  const authenticated = user !== null;
   const [admins, setAdmins] = useState<AdminRow[] | null>(null);
   const [me, setMe] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
@@ -125,9 +126,9 @@ export function AdminAdmins() {
                 {a.id === me && <span className="ml-2 font-mono text-[0.625rem] uppercase tracking-[0.08em] text-accent">you</span>}
               </p>
               <p className="truncate font-mono text-[0.75rem] text-ink-muted">
-                {a.email ?? a.privy_did}
+                {a.email ?? a.user_id}
                 {" · "}
-                {a.privy_did ? "active" : "pending — has not signed in yet"}
+                {a.user_id ? "active" : "pending — has not signed in yet"}
               </p>
             </div>
             {a.id !== me && (
