@@ -46,10 +46,12 @@ describe("term range", () => {
     expect(MAX_TERM_MONTHS).toBe(UNDERWRITING.maxTermMonths);
   });
 
-  it("keeps every plan a Reg Z credit sale", () => {
-    // Four payments or fewer with no finance charge falls outside Reg Z
-    // entirely, which would quietly change what is being sold.
-    expect(MIN_TERM_MONTHS).toBeGreaterThan(4);
+  it("lets a plan be as short as two payments", () => {
+    // Product decision of 2026-09-22. A one-payment "plan" is just paying in
+    // full and has its own path; anything from two up is a plan. Plans of
+    // four or fewer at 0% fall outside Reg Z, and the disclosure is shown
+    // anyway — see the note on MIN_TERM_MONTHS.
+    expect(MIN_TERM_MONTHS).toBe(2);
   });
 
   it("clamps into range and to whole months", () => {
