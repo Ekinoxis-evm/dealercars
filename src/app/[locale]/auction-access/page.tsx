@@ -84,9 +84,10 @@ export default async function AuctionAccessPage({
                 height={211}
                 className="h-4 w-auto"
               />
-              <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-muted">
-                Copart
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/copart.svg" alt="Copart" width={140} height={53} className="h-4 w-auto" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/manheim.svg" alt="Manheim" width={167} height={167} className="h-4 w-auto" />
             </div>
             <div className="px-4 py-4">
               <p className="tnum font-display text-4xl font-extrabold leading-none tracking-tight text-brass">

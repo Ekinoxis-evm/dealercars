@@ -53,6 +53,10 @@ export const es: Dictionary = {
     howTitle: "Cómo se compra aquí",
     howLede:
       "Seis pasos, y cuatro son responsabilidad nuestra. Ésa es la diferencia entre un concesionario y un clasificado.",
+    auctionsTitle: "Compramos donde compran los grandes.",
+    auctionsLede:
+      "Las subastas mayoristas están cerradas al público. Nuestra licencia de dealer nos deja pujar en las tres, y de ahí salen los precios de este lote.",
+    auctionsOpen: "Abrir sitio",
     inPerson: "Esto lo hacemos en persona",
     inPersonLede:
       "Agendas una hora y vienes a la oficina. Repasamos qué necesitas de verdad, cuánto debería costar y cómo lo vas a pagar — antes de firmar nada.",

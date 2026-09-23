@@ -44,6 +44,10 @@ export const en = {
     howTitle: "How buying here works",
     howLede:
       "Six steps, and we are on the hook for four of them. That is the difference between a dealership and a classified ad.",
+    auctionsTitle: "We buy where the big dealers buy.",
+    auctionsLede:
+      "Wholesale auctions are closed to the public. Our dealer licence lets us bid at all three, which is where the prices on this lot come from.",
+    auctionsOpen: "Open site",
     inPerson: "We do this in person",
     inPersonLede:
       "You book a time and come to the office. We go through what you actually need, what it should cost, and how you will pay for it — before anything is signed.",
