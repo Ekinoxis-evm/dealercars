@@ -47,6 +47,26 @@ describe("the contact message carries the quote", () => {
     }
   });
 
+  it("carries the visit the member asked for, when there is one", () => {
+    const withVisit = contactMessage(
+      {
+        kind: "plan",
+        plan: {
+          url: "https://mgmautobroker.vercel.app/es/marketplace/listing_mazda_cx5_2016",
+          vehicle: "2016 Mazda CX-5",
+          downCents: 3_000_00,
+          monthlyPaymentCents: 237_800,
+          termMonths: 3,
+          outTheDoorCents: 10_134_00,
+          visit: "jueves, 24 de septiembre, 10:00 AM EDT",
+        },
+      },
+      es.contact
+    );
+    expect(withVisit).toContain("Cita que prefiero: jueves, 24 de septiembre, 10:00 AM EDT");
+    expect(msg(es.contact)).not.toContain("Cita que prefiero");
+  });
+
   it("speaks the reader's language", () => {
     expect(msg(es.contact)).toContain("Entrada");
     expect(msg(en.contact)).toContain("Down payment");

@@ -208,6 +208,14 @@ export const es: Dictionary = {
   },
 
   visit: {
+    sheetTitle: "¿Cuándo quieres venir a verlo?",
+    sheetLede: "Elige un día y una hora. Un asesor lo confirma por WhatsApp.",
+    pickDay: "Elige el día",
+    pickTime: "Elige la hora",
+    chosen: "Tu cita:",
+    sendWith: "Enviar mi plan y esta cita por WhatsApp",
+    sendWithout: "Enviar sin cita",
+    none: "No hay horarios en las próximas dos semanas. Envía sin cita y lo cuadramos por WhatsApp.",
     bookTitle: "Agenda tu cita",
     driveTitle: "Ven a manejarlo",
     timesIn: (zone: string) => `Los horarios son la hora de la oficina (${zone}).`,
@@ -267,7 +275,7 @@ export const es: Dictionary = {
   contact: {
     talkToAgent: "Hablar con un asesor por WhatsApp",
     talkToAgentNote:
-      "Tu plan va en el mensaje tal como lo armaste. Un asesor confirma el auto, las cifras y tu cita — desde esta página no se cobra nada.",
+      "Elige día y hora para venir a verlo. Tu plan y tu cita van en el mensaje tal como los armaste; un asesor confirma ambos por WhatsApp — desde esta página no se cobra nada.",
     whatsapp: "WhatsApp",
     greeting: "Hola MGM Auto 👋",
     interestedIn: "Me interesa este auto:",
@@ -282,6 +290,7 @@ export const es: Dictionary = {
     maxMonthly: "Cuota máxima que puedo pagar",
     reaches: "Me alcanza hasta",
     general: "Quiero información sobre un auto.",
+    visit: "Cita que prefiero",
   },
 
   footer: {

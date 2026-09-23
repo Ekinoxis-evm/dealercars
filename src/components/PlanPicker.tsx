@@ -21,6 +21,7 @@ import { RegZDisclosure } from "./RegZDisclosure";
 import { useI18n } from "@/i18n/client";
 import { localePath } from "@/i18n";
 import { WhatsAppLink } from "./DealerContact";
+import { VisitPicker } from "./VisitPicker";
 
 /**
  * Build a payment on one specific car.
@@ -100,6 +101,7 @@ export function PlanPicker({
   );
   const [termMonths, setTermMonths] = useState(DEFAULT_TERM_MONTHS);
   const [quote, setQuote] = useState<PriceQuote>(initialQuote);
+  const [picking, setPicking] = useState(false);
 
   /**
    * This page's absolute URL, for the WhatsApp message. The server render only
@@ -371,27 +373,46 @@ export function PlanPicker({
             {/* The one call to action. The message carries the SETTLED plan —
                 the figures the server returned and this page shows — never a
                 mid-drag guess, so it is dimmed and inert until the quote lands. */}
-            <div
-              className={`mt-4 ${settling || belowFloor ? "pointer-events-none opacity-40" : ""}`}
-              aria-disabled={settling || belowFloor}
+            <button
+              type="button"
+              disabled={settling || belowFloor}
+              onClick={() => setPicking(true)}
+              className="mt-4 flex w-full items-center justify-center gap-2.5 border border-[#0b7a45] bg-[#128c4a] px-5 py-3 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <WhatsAppLink
-                payload={{
-                  kind: "plan",
-                  plan: {
-                    url: pageUrl,
-                    vehicle: `${listing.year} ${listing.make} ${listing.model}`,
-                    downCents: plan.downCents,
-                    monthlyPaymentCents: plan.monthlyPaymentCents,
-                    termMonths: plan.termMonths,
-                    outTheDoorCents: quote.outTheDoorCents,
-                  },
-                }}
-                className="flex w-full items-center justify-center gap-2.5 border border-[#0b7a45] bg-[#128c4a] px-5 py-3 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-white hover:opacity-90"
-              >
-                {dict.contact.talkToAgent}
-              </WhatsAppLink>
-            </div>
+              {dict.contact.talkToAgent}
+            </button>
+
+            {/* The sheet asks for a day and an hour, then sends the plan and
+                the visit together. Both send controls are the same WhatsApp
+                link with and without the visit line. */}
+            <VisitPicker
+              listingId={listing.id}
+              open={picking}
+              onClose={() => setPicking(false)}
+              renderSend={(visit) => (
+                <WhatsAppLink
+                  payload={{
+                    kind: "plan",
+                    plan: {
+                      url: pageUrl,
+                      vehicle: `${listing.year} ${listing.make} ${listing.model}`,
+                      downCents: plan.downCents,
+                      monthlyPaymentCents: plan.monthlyPaymentCents,
+                      termMonths: plan.termMonths,
+                      outTheDoorCents: quote.outTheDoorCents,
+                      visit: visit?.label,
+                    },
+                  }}
+                  className={
+                    visit
+                      ? "flex w-full items-center justify-center gap-2.5 border border-[#0b7a45] bg-[#128c4a] px-5 py-3 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-white hover:opacity-90"
+                      : undefined
+                  }
+                >
+                  {visit ? dict.visit.sendWith : dict.visit.sendWithout}
+                </WhatsAppLink>
+              )}
+            />
 
             <p className="mt-2 font-serif text-[0.8125rem] leading-snug text-ink-muted">
               {dict.contact.talkToAgentNote}

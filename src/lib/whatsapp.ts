@@ -31,6 +31,8 @@ export interface QuotedPlan {
   monthlyPaymentCents: Money;
   termMonths: number;
   outTheDoorCents: Money;
+  /** "jueves, 24 de septiembre, 10:00 AM EDT" — the visit the member asked for, if any. */
+  visit?: string;
 }
 
 /** A budget with no specific car attached — from the affordability worksheet. */
@@ -61,6 +63,7 @@ export interface ContactStrings {
   maxMonthly: string;
   reaches: string;
   general: string;
+  visit: string;
 }
 
 /**
@@ -88,6 +91,7 @@ export function contactMessage(
       `• ${t.monthly}: ${money(p.monthlyPaymentCents)}`,
       `• ${t.term}: ${p.termMonths} ${t.months}`,
       `• ${t.outTheDoor}: ${money(p.outTheDoorCents)} (${t.zeroApr})`,
+      ...(p.visit ? ["", `${t.visit}: ${p.visit}`] : []),
     ].join("\n");
   }
 
