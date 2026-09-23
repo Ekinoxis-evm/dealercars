@@ -97,6 +97,34 @@ describe("the contact message carries the quote", () => {
   });
 });
 
+describe("the auction enquiry", () => {
+  it("carries every answer and no payment figure", () => {
+    const m = contactMessage(
+      {
+        kind: "auction",
+        enquiry: {
+          url: "https://mgmautobroker.vercel.app/es/auction-access",
+          feeCents: 500_00,
+          forWhom: "Para mí",
+          budgetCents: 8_000_00,
+          wanted: "Toyota Corolla 2016–2019",
+          payment: "Financiado con MGM al 0%",
+          timing: "Este mes",
+          name: "Ana",
+        },
+      },
+      es.contact
+    );
+    expect(m).toContain("Quiero Acceso a Subastas.");
+    expect(m).toContain("Presupuesto total para el auto: $8,000");
+    expect(m).toContain("Toyota Corolla 2016–2019");
+    expect(m).toContain("Nombre: Ana");
+    // A total budget is not a down payment or a monthly; the message must not
+    // read like a credit advertisement.
+    expect(m).not.toMatch(/\/mes|monthly|de entrada/i);
+  });
+});
+
 describe("whatsappUrl", () => {
   it("builds a wa.me link with the message encoded", () => {
     const url = whatsappUrl("17868671441", "hola mundo");

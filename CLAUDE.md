@@ -251,7 +251,12 @@ route today; the route and its gates stay, because the money path is the part th
 get right and the day it is switched back on it must not be rebuilt. The same button asks for a
 day and an hour first (`VisitPicker`, fed by `GET /api/visits`) and puts the chosen visit in the
 message; nothing is booked from the page — the agent confirms on WhatsApp. `VisitScheduler`,
-which books through `POST /api/visits` behind a login, survives only on the auction-access page. There is no floating
+which books through `POST /api/visits` behind a login, survives only on the auction-access page.
+
+The auction-access page follows the same rule: its button opens a five-question sheet
+(`AuctionEnquiry`) and sends the answers to WhatsApp. `AuctionAccessCheckout`, the Stripe path
+behind the service gate, is parked in the codebase until the connected account clears. A visitor
+is never told about our payment processor. There is no floating
 contact button: WhatsApp lives beside the quote in `PlanPicker` and in the footer, both through
 `DealerContact.tsx`, which reads the number off the dealer row.
 

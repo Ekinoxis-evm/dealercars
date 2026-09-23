@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { formatMoney } from "@/lib/finance";
 import { loadDealer } from "@/lib/dealer-store";
-import { OPERATING_DEALER_ID, serviceBlockReason } from "@/lib/dealers";
+import { OPERATING_DEALER_ID } from "@/lib/dealers";
 import { AUCTION_ACCESS_FEE_CENTS } from "@/lib/auction-access";
-import { AuctionAccessCheckout } from "@/components/privy-deferred";
+import { AuctionEnquiry } from "@/components/AuctionEnquiry";
 import { getDictionary, isLocale } from "@/i18n";
 import { notFound } from "next/navigation";
 import { Steps } from "@/components/Steps";
@@ -46,8 +46,6 @@ export default async function AuctionAccessPage({
         dealer.postalCode ? ` ${dealer.postalCode}` : ""
       }`
     : undefined;
-  // Service gate, not the credit one — see the checkout route.
-  const blockReason = dealer ? serviceBlockReason(dealer) : "No dealer is configured.";
 
   return (
     <main>
@@ -98,17 +96,12 @@ export default async function AuctionAccessPage({
                 {t.auction.oneOff}
               </p>
 
+              {/* The paid path (AuctionAccessCheckout, behind the service gate)
+                  is parked until the Stripe account clears. Until then the
+                  button asks five questions and sends them to an agent —
+                  a visitor is never told about our payment processor. */}
               <div className="mt-4">
-                {blockReason ? (
-                  <p className="border-l-2 border-accent bg-paper-sunken px-3 py-2 font-serif text-[0.875rem] leading-snug text-ink-muted">
-                    {blockReason} {t.auction.blockedTail}
-                  </p>
-                ) : (
-                  <AuctionAccessCheckout
-                    feeCents={AUCTION_ACCESS_FEE_CENTS}
-                    address={address}
-                  />
-                )}
+                <AuctionEnquiry feeCents={AUCTION_ACCESS_FEE_CENTS} />
               </div>
             </div>
           </div>
