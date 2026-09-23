@@ -5,6 +5,7 @@ import { isOnTheLot, listShopWindow } from "@/lib/listing-store";
 import { toCardData } from "@/lib/inventory-card";
 import { CarCard } from "@/components/CarCard";
 import { InventoryGrid } from "@/components/InventoryGrid";
+import { Steps } from "@/components/Steps";
 
 /**
  * The lot.
@@ -62,6 +63,8 @@ export default async function CarsPage({
           </p>
         </div>
       </section>
+
+      <Steps id="how" title={t.cars.howTitle} steps={t.cars.steps} tone="sunken" />
 
       <section>
         <div className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">

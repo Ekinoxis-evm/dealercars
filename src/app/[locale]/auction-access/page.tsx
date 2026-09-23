@@ -6,6 +6,7 @@ import { AUCTION_ACCESS_FEE_CENTS } from "@/lib/auction-access";
 import { AuctionAccessCheckout } from "@/components/privy-deferred";
 import { getDictionary, isLocale } from "@/i18n";
 import { notFound } from "next/navigation";
+import { Steps } from "@/components/Steps";
 
 /**
  * Auction Access — the brokerage product.
@@ -113,6 +114,8 @@ export default async function AuctionAccessPage({
           </div>
         </div>
       </section>
+
+      <Steps id="how" title={t.auction.howTitle} steps={t.auction.steps} />
 
       {/* ------------------------------------------------------- what/what not */}
       <section className="border-b border-rule-strong bg-paper-sunken">
