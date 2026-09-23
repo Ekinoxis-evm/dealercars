@@ -125,7 +125,7 @@ export function CarGallery({
           role="dialog"
           aria-modal="true"
           aria-label={altOf(photo, current)}
-          className="fixed inset-0 z-50 flex flex-col bg-black/95"
+          className="fixed inset-0 z-50 flex flex-col bg-black"
           onClick={() => setOpen(false)}
         >
           <div className="flex items-center justify-between px-4 py-3 text-white">
