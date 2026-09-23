@@ -6,6 +6,7 @@ import { toCardData } from "@/lib/inventory-card";
 import { loadDealer } from "@/lib/dealer-store";
 import { OPERATING_DEALER_ID } from "@/lib/dealers";
 import { CarCard } from "@/components/CarCard";
+import { AuctionHouses } from "@/components/AuctionHouses";
 
 /**
  * Same sixty seconds of staleness as the rest of the shop window. The cars
@@ -145,6 +146,9 @@ export default async function Home({
           </ol>
         </div>
       </section>
+
+      {/* -------------------------------------------------------- auctions */}
+      <AuctionHouses dict={t} />
 
       {/* ---------------------------------------------------------- office */}
       {address && (
