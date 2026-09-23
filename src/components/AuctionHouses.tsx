@@ -55,9 +55,6 @@ export function AuctionHouses({ dict }: { dict: Dictionary }) {
                   className={`w-auto max-w-[70%] object-contain ${"tall" in h && h.tall ? "max-h-16" : "max-h-12"}`}
                 />
               </a>
-              <p className="mt-2 text-center font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-faint">
-                {h.name} · {dict.home.auctionsOpen} ↗
-              </p>
             </li>
           ))}
         </ul>

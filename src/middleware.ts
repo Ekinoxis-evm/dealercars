@@ -28,6 +28,10 @@ function isExempt(pathname: string): boolean {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/brand/") ||
     pathname === "/favicon.ico" ||
+    // The site icons Next serves from src/app. A redirect here sends the
+    // browser tab to /es/icon.png, which is a 404 and a blank tab icon.
+    pathname === "/icon.png" ||
+    pathname === "/apple-icon.png" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml"
   );

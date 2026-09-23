@@ -79,10 +79,10 @@ export default async function Home({
               {t.home.seeCars}
             </Link>
             <Link
-              href={`${p("/marketplace")}#how`}
-              className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink underline underline-offset-4 hover:text-accent"
+              href={p("/auction-access")}
+              className="border border-rule-strong bg-paper-raised px-5 py-2.5 font-mono text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent"
             >
-              {t.home.howItWorksLink} ↓
+              {t.home.seeAuctions}
             </Link>
           </div>
         </div>

@@ -45,7 +45,7 @@ export const es: Dictionary = {
     // disparador de Reg Z, y el encabezado ya no lleva la divulgación.
     lede: "Compramos los autos, tenemos el título y llevamos el financiamiento nosotros mismos. Cada auto del marketplace muestra su precio final completo, y puedes dividir ese mismo precio en cuotas mensuales sin pagar un centavo de interés.",
     seeCars: "Ver el marketplace",
-    howItWorksLink: "Cómo se compra",
+    seeAuctions: "Acceso a subastas",
     onTheLotNow: "En el lote ahora",
     allCars: (n: number) => `Ver los ${n} autos →`,
     onTheLotLede:
@@ -150,6 +150,21 @@ export const es: Dictionary = {
     next: "Foto siguiente",
     photo: (n: number, total: number) => `foto ${n} de ${total}`,
     more: (label: string) => `Fotos del ${label}`,
+  },
+
+  price: {
+    heading: "Qué incluye el precio",
+    lede: "El número completo, no un precio al que después le suman cargos. Toca ? en cualquier línea para ver en qué se basa.",
+    why: "¿En qué se basa?",
+    source: "Ver la fuente",
+    vehicleWhy: "El precio del auto en sí, fijado por MGM Auto. Es la cifra de la tarjeta y no cambia en el escritorio.",
+    taxWhy: (stateRate: string, surtaxRate: string | null, cap: string | null) =>
+      surtaxRate
+        ? `Impuesto de ventas de Florida del ${stateRate}, más el surtax discrecional del condado del ${surtaxRate}, que aplica solo a los primeros ${cap} del precio. El surtax sigue al condado donde registres el auto, así que se confirma con tu dirección al firmar.`
+        : `Impuesto estatal de ventas de vehículos del ${stateRate} sobre el precio del auto.`,
+    docWhy: "El cargo por documentación (pre-delivery service fee) del concesionario. Florida no lo limita, pero exige divulgarlo y cobrarlo igual a todos los clientes — es el mismo para todos.",
+    titleWhy: "Título, placa y primer registro con el estado, según la tabla de tarifas del DMV. Es un estimado: el monto exacto depende de tu registro y se ajusta al firmar.",
+    nothingElse: "Eso es todo. No hay ningún otro cargo.",
   },
 
   plan: {

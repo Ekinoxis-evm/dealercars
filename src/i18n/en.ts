@@ -36,7 +36,7 @@ export const en = {
     // Regulation Z trigger term, and the hero no longer carries a disclosure.
     lede: "We buy the cars, we hold the title, and we carry the payments ourselves. Every car in the marketplace shows its full out-the-door price, and you can split that exact price into monthly payments without paying a cent of interest.",
     seeCars: "See the marketplace",
-    howItWorksLink: "How buying works",
+    seeAuctions: "Auction access",
     onTheLotNow: "On the lot right now",
     allCars: (n: number) => `All ${n} cars →`,
     onTheLotLede:
@@ -141,6 +141,21 @@ export const en = {
     next: "Next photo",
     photo: (n: number, total: number) => `photo ${n} of ${total}`,
     more: (label: string) => `Photographs of the ${label}`,
+  },
+
+  price: {
+    heading: "What is in the price",
+    lede: "The whole number, not a sticker you add fees to later. Tap ? on any line to see what it is based on.",
+    why: "What is this based on?",
+    source: "See the source",
+    vehicleWhy: "The price of the car itself, set by MGM Auto. It is the figure on the card and it does not change at the desk.",
+    taxWhy: (stateRate: string, surtaxRate: string | null, cap: string | null) =>
+      surtaxRate
+        ? `Florida sales tax at ${stateRate}, plus the county discretionary surtax at ${surtaxRate}, which applies only to the first ${cap} of the price. The surtax follows the county where you register the car, so it is confirmed with your address at signing.`
+        : `State motor vehicle sales tax at ${stateRate} of the vehicle price.`,
+    docWhy: "The dealer's document (pre-delivery service) fee. Florida does not cap it but requires it to be disclosed and charged to every customer alike — this is the same fee for everyone.",
+    titleWhy: "Title, plate and first registration with the state, from the DMV fee schedule. An estimate: the exact amount depends on your registration and is settled at signing.",
+    nothingElse: "That is everything. There is no other charge.",
   },
 
   plan: {

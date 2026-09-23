@@ -52,6 +52,16 @@ export interface DealCosts {
   buyFeeCents: Money;
   /** Front-end gross the dealer requires to take the deal. */
   targetGrossCents: Money;
+  /**
+   * Where each public figure comes from, as links a member can follow. Shown
+   * beside the price breakdown on the car page: a fee with no source reads as
+   * a fee somebody made up. Optional so an unmapped state still type-checks.
+   */
+  sources?: {
+    salesTax: string;
+    docFee: string;
+    titleReg: string;
+  };
 }
 
 /**
