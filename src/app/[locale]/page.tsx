@@ -79,7 +79,7 @@ export default async function Home({
               {t.home.seeCars}
             </Link>
             <Link
-              href={`${p("/")}#how`}
+              href={`${p("/marketplace")}#how`}
               className="font-mono text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-ink underline underline-offset-4 hover:text-accent"
             >
               {t.home.howItWorksLink} ↓
@@ -114,38 +114,6 @@ export default async function Home({
           </div>
         </section>
       )}
-
-      {/* ---------------------------------------------------- how it works */}
-      <section id="how" className="scroll-mt-8 border-b border-rule-strong">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-          <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {t.home.howTitle}
-          </h2>
-          <p className="mt-3 max-w-2xl font-serif text-lg leading-relaxed text-ink-muted">
-            {t.home.howLede}
-          </p>
-          <ol className="mt-8 grid gap-px border border-rule-strong bg-rule sm:grid-cols-2 lg:grid-cols-3">
-            {t.steps.map((step, i) => (
-              <li key={step.title} className="bg-paper-raised p-5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="tnum font-mono text-[0.8125rem] font-semibold text-accent">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-ink-faint">
-                    {step.actor}
-                  </span>
-                </div>
-                <h3 className="mt-2 font-display text-lg font-bold tracking-tight">
-                  {step.title}
-                </h3>
-                <p className="mt-2 font-serif text-[0.9375rem] leading-relaxed text-ink-muted">
-                  {step.body}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
 
       {/* -------------------------------------------------------- auctions */}
       <AuctionHouses dict={t} />

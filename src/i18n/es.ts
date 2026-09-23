@@ -45,14 +45,11 @@ export const es: Dictionary = {
     // disparador de Reg Z, y el encabezado ya no lleva la divulgación.
     lede: "Compramos los autos, tenemos el título y llevamos el financiamiento nosotros mismos. Cada auto del marketplace muestra su precio final completo, y puedes dividir ese mismo precio en cuotas mensuales sin pagar un centavo de interés.",
     seeCars: "Ver el marketplace",
-    howItWorksLink: "Cómo funciona",
+    howItWorksLink: "Cómo se compra",
     onTheLotNow: "En el lote ahora",
     allCars: (n: number) => `Ver los ${n} autos →`,
     onTheLotLede:
       "Autos nuestros, inspeccionados y con título. El precio de cada uno es el precio final — impuesto, título, placas y doc fee incluidos.",
-    howTitle: "Cómo se compra aquí",
-    howLede:
-      "Seis pasos, y cuatro son responsabilidad nuestra. Ésa es la diferencia entre un concesionario y un clasificado.",
     auctionsTitle: "Compramos donde compran los grandes.",
     auctionsLede:
       "Las subastas mayoristas están cerradas al público. Nuestra licencia de dealer nos deja pujar en las tres, y de ahí salen los precios de este lote.",
@@ -63,40 +60,14 @@ export const es: Dictionary = {
     openInMaps: "Abrir en Google Maps →",
   },
 
-  steps: [
-    {
-      actor: "MGM Auto",
-      title: "Compramos el auto",
-      body: "Tenemos la licencia de dealer y el acceso a las subastas, así que compramos, inspeccionamos y acondicionamos cada auto nosotros. Nada se publica hasta tener el título en la mano.",
-    },
-    {
-      actor: "Tú",
-      title: "Eliges uno y ves el precio real",
-      body: "Cada auto muestra un solo número: precio final, con impuesto, título y doc fee ya incluidos. No aparecen cargos después, porque ya no queda ninguno por aparecer.",
-    },
-    {
-      actor: "Tú",
-      title: "Eliges cómo pagar",
-      body: "Págalo completo, o divide ese mismo precio en los meses que elijas. Sin intereses quiere decir sin intereses: los pagos suman exactamente el precio de contado.",
-    },
-    {
-      actor: "MGM Auto",
-      title: "Revisión de capacidad de pago",
-      body: "Vemos lo que ganas y lo que te deja libre la cuota, no un puntaje de crédito. Un historial corto o dañado es el mercado, no una descalificación.",
-    },
-    {
-      actor: "Tú",
-      title: "Vienes a manejarlo",
-      body: "Agendas una cita, manejas el auto y firmas ahí mismo. El depósito lo aparta para tu cita y es reembolsable por completo hasta que firmes.",
-    },
-    {
-      actor: "MGM Auto",
-      title: "El contrato es con nosotros",
-      body: "Somos el vendedor y el acreedor de tu contrato. No se lo vendemos a un banco, así que a quien le pagas es a quien le compraste.",
-    },
-  ],
-
   cars: {
+    howTitle: "Cómo se compra aquí",
+    steps: [
+      { title: "Eliges un auto", body: "Cada precio es el precio final: impuesto, título, placas y doc fee ya incluidos." },
+      { title: "Armas tu pago", body: "Lo pagas completo o divides ese mismo precio en los meses que elijas. 0% APR, al centavo." },
+      { title: "Hablas con un asesor", body: "Eliges día y hora; tu plan y tu cita nos llegan por WhatsApp." },
+      { title: "Lo manejas y firmas", body: "Vienes a la oficina, lo manejas y firmas ahí mismo. Somos el vendedor y el acreedor — no se lo vendemos a ningún banco." },
+    ],
     eyebrow: "Marketplace",
     title: "Todos los autos que tenemos.",
     lede: "Un precio por auto, y es el precio que de verdad pagas: impuesto, título, placas y doc fee ya incluidos. Págalo completo o divídelo en los meses que elijas, sin intereses — el plan de pagos cuesta exactamente lo mismo que el contado.",
@@ -244,6 +215,13 @@ export const es: Dictionary = {
     lede: (fee: string) =>
       `Las subastas mayoristas están cerradas al público. Por ${fee} fijos ponemos nuestra licencia de dealer y nuestro criterio detrás de tu próximo auto: más de 10,000 vehículos por semana, a precios muy por debajo de lo que puede ofrecer un lote al público.`,
     licensedToBid: "Con licencia para pujar en",
+    howTitle: "Cómo funciona el servicio",
+    steps: [
+      { title: "Pagas el acceso", body: "Un pago único, por búsqueda. Paga el trabajo, se gane o no un auto." },
+      { title: "Nos sentamos contigo", body: "Agendas una hora en la oficina. Acordamos qué buscar, cuánto debería costar y dónde nos detenemos." },
+      { title: "Pujamos por ti", body: "Primero el reporte de condición y la inspección. Paramos donde acordamos parar." },
+      { title: "Título y papeleo", body: "Después del martillo nos encargamos del título, el transporte y los papeles. Lo pagas de contado o lo financias con nosotros al 0%." },
+    ],
     oneOff: "Pago único · por búsqueda · no reembolsable",
     blockedTail: "El Acceso a Subastas no se puede comprar hasta resolver eso.",
     covers: "Qué incluye la tarifa",

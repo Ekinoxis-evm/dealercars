@@ -36,14 +36,11 @@ export const en = {
     // Regulation Z trigger term, and the hero no longer carries a disclosure.
     lede: "We buy the cars, we hold the title, and we carry the payments ourselves. Every car in the marketplace shows its full out-the-door price, and you can split that exact price into monthly payments without paying a cent of interest.",
     seeCars: "See the marketplace",
-    howItWorksLink: "How it works",
+    howItWorksLink: "How buying works",
     onTheLotNow: "On the lot right now",
     allCars: (n: number) => `All ${n} cars →`,
     onTheLotLede:
       "Cars we own, inspected and titled. The price on each card is the out-the-door price — tax, title, registration and doc fee included.",
-    howTitle: "How buying here works",
-    howLede:
-      "Six steps, and we are on the hook for four of them. That is the difference between a dealership and a classified ad.",
     auctionsTitle: "We buy where the big dealers buy.",
     auctionsLede:
       "Wholesale auctions are closed to the public. Our dealer licence lets us bid at all three, which is where the prices on this lot come from.",
@@ -54,40 +51,14 @@ export const en = {
     openInMaps: "Open in Google Maps →",
   },
 
-  steps: [
-    {
-      actor: "MGM Auto",
-      title: "We buy the car",
-      body: "We hold the dealer licence and the auction access, so we buy, inspect and recondition every car ourselves. Nothing is listed until we have the title in hand.",
-    },
-    {
-      actor: "You",
-      title: "Pick one and see the real price",
-      body: "Every car shows one number: out the door, tax and title and doc fee already in it. No fees appear later, because there are none left to appear.",
-    },
-    {
-      actor: "You",
-      title: "Choose how to pay",
-      body: "Pay in full, or split the same price over the months you choose. Interest-free means interest-free: the payments add up to the cash price to the cent.",
-    },
-    {
-      actor: "MGM Auto",
-      title: "Ability-to-pay check",
-      body: "We look at what you earn and what the payment leaves you, not at a credit score. Thin or damaged files are the market, not a disqualification.",
-    },
-    {
-      actor: "You",
-      title: "Come drive it",
-      body: "Book a visit, drive the car, and sign there. A deposit holds it for your appointment and is refundable in full until you sign.",
-    },
-    {
-      actor: "MGM Auto",
-      title: "We hold the paper",
-      body: "We are the seller and the creditor on your contract. Nothing is sold on to a third-party lender, so the people you pay are the people you bought from.",
-    },
-  ],
-
   cars: {
+    howTitle: "How buying here works",
+    steps: [
+      { title: "Pick a car", body: "Every price is out the door — tax, title, registration and doc fee already in it." },
+      { title: "Build your payment", body: "Pay in full, or split the same price over the months you choose. 0% APR, to the cent." },
+      { title: "Talk to an agent", body: "Pick a day and an hour; your plan and your visit go to us on WhatsApp." },
+      { title: "Drive it and sign", body: "Come to the office, drive it, sign there. We are the seller and the creditor — nothing is sold to a bank." },
+    ],
     eyebrow: "Marketplace",
     title: "Every car we own.",
     lede: "One price per car, and it is the price you actually pay: tax, title, registration and doc fee already in it. Pay it in full or split it over the months you choose with no interest — the payment plan costs the same as the cash price, to the cent.",
@@ -234,6 +205,13 @@ export const en = {
     lede: (fee: string) =>
       `Wholesale auctions are closed to the public. For a flat ${fee} we put our dealer licence and our judgement behind your next car: more than 10,000 vehicles a week, at prices well below what a retail lot can offer.`,
     licensedToBid: "Licensed to bid at",
+    howTitle: "How the service works",
+    steps: [
+      { title: "Pay the access fee", body: "One-off, per search. It pays for the work whether or not a car is won." },
+      { title: "Sit down with us", body: "Book a time at the office. We agree what to look for, what it should cost, and where we stop." },
+      { title: "We bid for you", body: "Condition report and inspection first. We stop where we agreed to stop." },
+      { title: "Title and paperwork", body: "After the hammer we handle title, transport and the paperwork. Pay cash or finance it with us at 0%." },
+    ],
     oneOff: "One-off · per car hunt · non-refundable",
     blockedTail: "Auction Access can't be bought until that is sorted.",
     covers: "What the fee covers",
