@@ -73,6 +73,13 @@ export function AdminPhotoManager({
     }
   }
 
+  /** Put this photograph first. It becomes the card image and the one the listing page opens on. */
+  function makeCover(index: number) {
+    if (index === 0) return;
+    const next = [photos[index], ...photos.filter((_, i) => i !== index)];
+    persistOrder(next);
+  }
+
   function move(index: number, delta: number) {
     const target = index + delta;
     if (target < 0 || target >= photos.length) return;
@@ -119,7 +126,7 @@ export function AdminPhotoManager({
           Photographs
         </h2>
         <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-faint">
-          {photos.length} &middot; first is the card image
+          {photos.length} &middot; the cover is the card image and the first one shown
         </p>
       </div>
 
@@ -157,10 +164,19 @@ export function AdminPhotoManager({
                     loading="lazy"
                     className="aspect-[4/3] w-full object-cover"
                   />
-                  {index === 0 && (
+                  {index === 0 ? (
                     <span className="absolute left-0 top-0 bg-accent px-2 py-0.5 font-mono text-[0.625rem] font-medium uppercase tracking-[0.08em] text-accent-ink">
-                      Card image
+                      Cover
                     </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => makeCover(index)}
+                      className="absolute left-0 top-0 border border-rule-strong bg-paper/90 px-2 py-0.5 font-mono text-[0.625rem] font-medium uppercase tracking-[0.08em] text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+                    >
+                      Make cover
+                    </button>
                   )}
                 </div>
 

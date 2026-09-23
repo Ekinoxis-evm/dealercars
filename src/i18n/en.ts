@@ -159,6 +159,15 @@ export const en = {
       "We are the seller and the creditor. Nothing is sold on to a third-party lender.",
   },
 
+  gallery: {
+    viewLarger: "View larger",
+    close: "Close",
+    previous: "Previous photo",
+    next: "Next photo",
+    photo: (n: number, total: number) => `photo ${n} of ${total}`,
+    more: (label: string) => `Photographs of the ${label}`,
+  },
+
   plan: {
     heading: "Build your payment",
     outTheDoorSuffix: "out the door",
