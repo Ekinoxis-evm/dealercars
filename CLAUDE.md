@@ -89,6 +89,11 @@ What changes is that the disclosure gets simple and attractive — APR 0.00%, fi
 total of payments equal to the cash price. Four payments or fewer with no finance charge would fall
 outside Reg Z entirely; `REG_Z_INSTALLMENT_THRESHOLD` in `types.ts` is that line.
 
+**Decided 2026-09-22: the plan builder's floor is 2 months** (`MIN_TERM_MONTHS`), so a 2–4
+month plan is offered and is outside Reg Z. The disclosure is rendered for it anyway, with the
+same figures, because a page whose honesty depends on where a slider sits is not honest. The
+retail installment contract is still the paper for every plan.
+
 Because the finance charge must be a true $0.00, `amortize()` derives the total of payments from
 the actual schedule, including the drift-absorbing final payment. `payment × term` is off by a few
 cents, which at a non-zero rate is invisible and at 0% discloses a finance charge on an

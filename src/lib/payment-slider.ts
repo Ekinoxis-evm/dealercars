@@ -37,13 +37,18 @@ export const MONTHLY_STEP: Money = 5_00;
  *
  * The ceiling is the underwriting cap, not a separate number — a term the
  * builder offers but underwriting refuses is a promise the checkout breaks.
- * The floor is a product decision: below about six payments this stops being a
- * payment plan and becomes a deferred invoice, and under
- * REG_Z_INSTALLMENT_THRESHOLD it would fall outside Reg Z entirely and quietly
- * change what we are selling. Six keeps every plan a credit sale with a TILA
- * box, which is the thing the rest of this codebase is built around.
+ *
+ * The floor is two payments. Decided 2026-09-22, down from six: a member who
+ * can clear the car in two or three months should be allowed to say so. Note
+ * what that means. A plan of four payments or fewer at 0% with no finance
+ * charge is NOT a Reg Z credit sale (12 CFR 1026.2(a)(17), and
+ * REG_Z_INSTALLMENT_THRESHOLD is that line), so for a 2–4 month plan the TILA
+ * box is not legally required. It is rendered anyway — the same figures, the
+ * same words — because a page that shows the terms for a 5-month plan and
+ * hides them for a 4-month one is a page whose honesty depends on a slider.
+ * The retail installment contract is still the paper for every plan.
  */
-export const MIN_TERM_MONTHS = 6;
+export const MIN_TERM_MONTHS = 2;
 export const MAX_TERM_MONTHS = UNDERWRITING.maxTermMonths;
 
 /**
