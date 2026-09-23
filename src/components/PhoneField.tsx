@@ -85,7 +85,9 @@ export function PhoneField({
             setCountry(c);
             commit(c, national);
           }}
-          className={`${inputClass} w-auto shrink-0 pr-7`}
+          // Not `inputClass`: that carries w-full, and two width utilities on
+          // one element resolve by stylesheet order, not by intent.
+          className={`${inputClass.replace(/\bw-full\b/, "")} w-28 shrink-0`}
         >
           {COUNTRIES.map((c) => (
             <option key={c.code} value={c.code}>
@@ -105,7 +107,7 @@ export function PhoneField({
             setNational(typed);
             commit(country, typed);
           }}
-          className={inputClass}
+          className={`${inputClass} min-w-0 flex-1`}
         />
       </div>
       {hint && <span className="mt-1 block font-serif text-[0.75rem] text-ink-muted">{hint}</span>}
