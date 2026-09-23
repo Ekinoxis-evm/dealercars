@@ -43,9 +43,24 @@ export interface QuotedBudget {
   maxOutTheDoorCents: Money;
 }
 
+/** The auction-access questionnaire, answered. Labels arrive already in the page's language. */
+export interface AuctionEnquiry {
+  url: string;
+  feeCents: Money;
+  forWhom: string;
+  budgetCents: Money;
+  wanted?: string;
+  payment: string;
+  timing: string;
+  name?: string;
+}
+
+export type AuctionEnquiryPayload = { kind: "auction"; enquiry: AuctionEnquiry };
+
 export type ContactPayload =
   | { kind: "plan"; plan: QuotedPlan }
   | { kind: "budget"; budget: QuotedBudget }
+  | AuctionEnquiryPayload
   | { kind: "general"; url: string };
 
 /** Copy for the message body, supplied by the active dictionary. */
@@ -64,6 +79,14 @@ export interface ContactStrings {
   reaches: string;
   general: string;
   visit: string;
+  auctionIntro: string;
+  auctionFee: string;
+  auctionFor: string;
+  auctionBudget: string;
+  auctionWanted: string;
+  auctionPayment: string;
+  auctionWhen: string;
+  auctionName: string;
 }
 
 /**
@@ -95,6 +118,8 @@ export function contactMessage(
     ].join("\n");
   }
 
+  if (payload.kind === "auction") return auctionMessage(payload.enquiry, t);
+
   if (payload.kind === "budget") {
     const b = payload.budget;
     return [
@@ -114,6 +139,29 @@ export function contactMessage(
   const lines = [t.greeting, "", t.general];
   if (payload.url) lines.push(payload.url);
   return lines.join("\n");
+}
+
+/**
+ * The auction-access enquiry. No payment figure in it — a total budget is
+ * not a down payment or a monthly, and the fee is a service price — so
+ * nothing here is a credit advertisement.
+ */
+function auctionMessage(e: AuctionEnquiry, t: ContactStrings): string {
+  const money = (cents: Money) => formatMoney(cents);
+  return [
+    t.greeting,
+    "",
+    t.auctionIntro,
+    `• ${t.auctionFee}: ${money(e.feeCents)}`,
+    `• ${t.auctionFor}: ${e.forWhom}`,
+    `• ${t.auctionBudget}: ${money(e.budgetCents)}`,
+    ...(e.wanted ? [`• ${t.auctionWanted}: ${e.wanted}`] : []),
+    `• ${t.auctionPayment}: ${e.payment}`,
+    `• ${t.auctionWhen}: ${e.timing}`,
+    ...(e.name ? [`• ${t.auctionName}: ${e.name}`] : []),
+    "",
+    e.url,
+  ].join("\n");
 }
 
 /**
