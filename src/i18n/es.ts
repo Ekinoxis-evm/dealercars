@@ -168,6 +168,15 @@ export const es: Dictionary = {
       "Somos el vendedor y el acreedor. No le vendemos el contrato a ningún banco.",
   },
 
+  gallery: {
+    viewLarger: "Ver más grande",
+    close: "Cerrar",
+    previous: "Foto anterior",
+    next: "Foto siguiente",
+    photo: (n: number, total: number) => `foto ${n} de ${total}`,
+    more: (label: string) => `Fotos del ${label}`,
+  },
+
   plan: {
     heading: "Arma tu pago",
     outTheDoorSuffix: "precio final",
