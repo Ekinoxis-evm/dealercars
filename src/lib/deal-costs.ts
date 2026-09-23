@@ -19,7 +19,14 @@ import { DEFAULT_DEAL_COSTS } from "./types";
  * Texas. The repo's original default, unchanged: 6.25% motor vehicle sales
  * tax, no county surtax, $299 doc fee, auction-sourced cost stack.
  */
-export const TX_DEAL_COSTS: DealCosts = { ...DEFAULT_DEAL_COSTS };
+export const TX_DEAL_COSTS: DealCosts = {
+  ...DEFAULT_DEAL_COSTS,
+  sources: {
+    salesTax: "https://comptroller.texas.gov/taxes/motor-vehicle/sales-use.php",
+    docFee: "https://statutes.capitol.texas.gov/Docs/FI/htm/FI.348.htm#348.006",
+    titleReg: "https://www.txdmv.gov/motorists/register-your-vehicle",
+  },
+};
 
 /**
  * Florida — Orange County (Orlando).
@@ -75,6 +82,15 @@ export const FL_ORANGE_DEAL_COSTS: DealCosts = {
    */
   buyFeeCents: 150_00,
   targetGrossCents: 2795_00,
+  sources: {
+    // 6% state rate, and the county discretionary surtax with its $5,000 cap
+    // on motor vehicles — Florida DOR's own pages.
+    salesTax: "https://floridarevenue.com/taxes/taxesfees/Pages/discretionary.aspx",
+    // Fla. Stat. 501.976(18): the pre-delivery service fee must be disclosed
+    // and charged to every customer alike.
+    docFee: "http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.976.html",
+    titleReg: "https://www.flhsmv.gov/fees/",
+  },
 };
 
 const BY_STATE: Record<string, DealCosts> = {

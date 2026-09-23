@@ -206,10 +206,13 @@ export function PlanPicker({
         <h2 className="font-display text-base font-extrabold tracking-tight">
           {dict.plan.heading}
         </h2>
-        <p className="tnum font-mono text-[0.75rem] text-ink-muted">
-          {formatMoney(quote.outTheDoorCents, { cents: true })}{" "}
-          {dict.plan.outTheDoorSuffix} ·{" "}
-          <span className="text-accent">0% APR</span>
+        <p className="tnum flex items-baseline gap-2">
+          <span className="font-display text-2xl font-extrabold leading-none tracking-tight text-brass">
+            {formatMoney(quote.outTheDoorCents, { cents: true })}
+          </span>
+          <span className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-muted">
+            {dict.plan.outTheDoorSuffix} · <span className="text-accent">0% APR</span>
+          </span>
         </p>
       </header>
 

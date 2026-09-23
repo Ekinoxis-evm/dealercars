@@ -6,6 +6,7 @@ import { minDownFor, quoteListing, formatMoney } from "@/lib/finance";
 import { DEFAULT_TERM_MONTHS, clampDown, downBounds } from "@/lib/payment-slider";
 import { PlanPicker } from "@/components/PlanPicker";
 import { CarGallery } from "@/components/CarGallery";
+import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { getDictionary, isLocale } from "@/i18n";
 
 /**
@@ -104,14 +105,36 @@ export default async function CarPage({
         </p>
 
         {priceable && (
-          <p className="mt-3 font-serif leading-snug">
-            <span className="tnum font-display text-2xl font-extrabold tracking-tight">
+          <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="tnum font-display text-4xl font-extrabold leading-none tracking-tight text-brass sm:text-5xl">
               {formatMoney(quote.outTheDoorCents, { cents: true })}
-            </span>{" "}
-            <span className="text-ink-muted">{t.car.outTheDoorTail}</span>
+            </span>
+            <span className="font-serif text-[0.9375rem] leading-snug text-ink-muted">
+              {t.car.outTheDoorTail}
+            </span>
           </p>
         )}
       </header>
+
+      {/* -------------------------------------------------------- the price */}
+      {priceable && (
+        <div className="mt-6">
+          <PriceBreakdown
+            state={listing.state}
+            costs={{
+              salesTaxRate: costs.salesTaxRate,
+              countySurtaxRate: costs.countySurtaxRate,
+              countySurtaxCapCents: costs.countySurtaxCapCents,
+              sources: costs.sources,
+            }}
+            retailPriceCents={quote.retailPriceCents}
+            salesTaxCents={quote.salesTaxCents}
+            docFeeCents={quote.docFeeCents}
+            titleRegCents={quote.titleRegCents}
+            outTheDoorCents={quote.outTheDoorCents}
+          />
+        </div>
+      )}
 
       {/* ------------------------------------------------------ gallery */}
       <CarGallery
@@ -191,21 +214,6 @@ export default async function CarPage({
               ))}
             </ul>
           </Card>
-
-          {priceable && (
-            <Card title={t.car.thePrice}>
-              <dl className="tnum px-4 py-3 font-mono text-[0.75rem] sm:px-6">
-                <Line label={t.car.vehicle} value={formatMoney(quote.retailPriceCents, { cents: true })} />
-                <Line label={`${listing.state} ${t.car.tax}`} value={formatMoney(quote.salesTaxCents, { cents: true })} />
-                <Line label={t.car.docFee} value={formatMoney(quote.docFeeCents, { cents: true })} />
-                <Line label={t.car.titleReg} value={formatMoney(quote.titleRegCents, { cents: true })} />
-                <Line label={t.car.outTheDoorRow} value={formatMoney(quote.outTheDoorCents, { cents: true })} strong />
-              </dl>
-              <p className="border-t border-rule px-4 py-2 font-serif text-[0.75rem] leading-snug text-ink-muted sm:px-6">
-                {t.car.creditorNote}
-              </p>
-            </Card>
-          )}
         </div>
       </div>
     </main>
@@ -241,22 +249,3 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Label beside value, for the price ledger. */
-function Line({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-rule py-1.5 last:border-0">
-      <dt className="uppercase tracking-[0.06em] text-ink-faint">{label}</dt>
-      <dd className={`text-right ${strong ? "font-semibold text-ink" : "text-ink"}`}>
-        {value}
-      </dd>
-    </div>
-  );
-}
