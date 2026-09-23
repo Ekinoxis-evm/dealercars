@@ -333,7 +333,11 @@ export interface MemberProfile {
   /** Supabase Auth user id. The login key. */
   userId: string;
   email?: string;
+  /** E.164, e.g. "+14075551234". */
   phone?: string;
+  firstName?: string;
+  lastName?: string;
+  /** "First Last", kept in step with the two above. */
   fullName?: string;
 
   addressLine1?: string;
@@ -342,6 +346,8 @@ export interface MemberProfile {
   /** Drives the DealCosts profile, the RISC form, and the usury cap. */
   state?: string;
   postalCode?: string;
+  /** From the address geocoder. In Florida the sales surtax follows this. */
+  county?: string;
 
   employmentType?: EmploymentType;
   employerName?: string;
