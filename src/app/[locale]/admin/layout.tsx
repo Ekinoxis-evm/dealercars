@@ -1,4 +1,4 @@
-import { AdminShell } from "@/components/privy-deferred";
+import { AdminShell } from "@/components/AdminShell";
 
 /**
  * Every admin route sits behind one gate. See AdminShell.

@@ -1,52 +1,15 @@
 "use client";
 
-import { PrivyProvider } from "@privy-io/react-auth";
-import { publicEnv } from "@/lib/env";
+import { AuthProvider } from "@/components/AuthProvider";
 
 /**
- * Privy owns the session; Supabase owns the record.
+ * Supabase Auth owns the session; the `profiles` table owns the record.
  *
- * Wallets are turned OFF on both chains, deliberately and explicitly rather
- * than by relying on the default. This is US-regulated consumer credit: the
- * borrower needs a bank account for ACH, the dealer needs a lien perfected
- * with the state DMV, and the contract has to be enforceable in a county
- * court. An embedded wallet solves none of that and adds a KYC surface we
- * would then have to defend. Privy is here for email and passkey login only.
+ * Sign-in is an email and a one-time code or link. There is no password, no
+ * social login, no wallet and no third-party identity SDK: this is US-regulated
+ * consumer credit, and the only thing a session has to prove is which verified
+ * email address is asking.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Without an app id the provider throws on mount, which would white-screen
-  // the marketing pages for a visitor who never signs in. Render plainly.
-  if (!publicEnv.privyAppId) return <>{children}</>;
-
-  return (
-    <PrivyProvider
-      appId={publicEnv.privyAppId}
-      config={{
-        // Email and passkey, nothing else. Decided 2026-09-22. Email is the
-        // identity: it is what an admin invitation is matched against, and it
-        // is where a member's statements go. A passkey is a faster way back
-        // into the same account once it exists — Privy links it to the email
-        // account rather than creating a second one. SMS and Google are gone:
-        // a phone number is not an address we can send a disclosure to, and a
-        // second identity provider is a second thing to reconcile.
-        loginMethods: ["email", "passkey"],
-        embeddedWallets: {
-          ethereum: { createOnLogin: "off" },
-          solana: { createOnLogin: "off" },
-          // No wallet screens of any kind, even if a wallet somehow exists:
-          // a member signing in to buy a car must never be shown an address.
-          showWalletUIs: false,
-        },
-        appearance: {
-          theme: "light",
-          accentColor: "#a8352a",
-          // No wallet options in the login modal — there is nothing here a
-          // wallet could be used for.
-          walletList: [],
-        },
-      }}
-    >
-      {children}
-    </PrivyProvider>
-  );
+  return <AuthProvider>{children}</AuthProvider>;
 }

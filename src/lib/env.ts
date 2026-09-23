@@ -31,29 +31,12 @@ function serverOnly(name: string): string {
 }
 
 export const serverEnv = {
-  get privyAppId() {
-    return required("NEXT_PUBLIC_PRIVY_APP_ID");
-  },
-  get privyAppSecret() {
-    return serverOnly("PRIVY_APP_SECRET");
-  },
-  /**
-   * Privy's public verification key. Optional, and worth setting.
-   *
-   * Without it `verifyAuthToken` calls Privy over the network to fetch the key
-   * on every authenticated request, which puts a third-party round-trip on the
-   * critical path of every signed-in page load and makes a Privy outage look
-   * like our outage. With it, the JWT is verified locally.
-   *
-   * Dashboard → App settings → Verification key. Not a secret (it is a public
-   * key) but kept server-side because nothing in the browser needs it.
-   */
-  get privyVerificationKey(): string | undefined {
-    if (typeof window !== "undefined") return undefined;
-    return process.env.PRIVY_VERIFICATION_KEY || undefined;
-  },
   get supabaseUrl() {
     return required("NEXT_PUBLIC_SUPABASE_URL");
+  },
+  /** Reads nothing under deny-all RLS. The auth session is its only job. */
+  get supabasePublishableKey() {
+    return required("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
   },
   /** Bypasses RLS entirely. Server routes only, never shipped to a client. */
   get supabaseServiceRoleKey() {
@@ -72,7 +55,6 @@ export const serverEnv = {
 
 /** Safe in the browser. */
 export const publicEnv = {
-  privyAppId: process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 };
 
@@ -85,8 +67,4 @@ export function isSupabaseConfigured(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
   );
-}
-
-export function isPrivyConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 }

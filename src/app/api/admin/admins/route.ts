@@ -6,7 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase";
  * Who is an admin, and inviting another one.
  *
  * An invitation is an email address. It becomes a working admin the first
- * time a Privy session whose VERIFIED email matches signs in — see
+ * time a session whose VERIFIED email matches signs in — see
  * `requireAdmin()`. Only an existing admin can add one, and the row records
  * who did, so a surprise admin is always traceable to the admin who added
  * them. That is the whole difference between this and the "become an admin"
@@ -14,7 +14,7 @@ import { supabaseAdmin } from "@/lib/supabase";
  */
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+$/;
-const COLUMNS = "id, email, privy_did, label, added_by, bound_at, created_at";
+const COLUMNS = "id, email, user_id, label, added_by, bound_at, created_at";
 
 export async function GET(request: Request) {
   const admin = await requireAdmin(request);

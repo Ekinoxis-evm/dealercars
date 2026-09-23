@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
+import { SignIn } from "./SignIn";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { formatMoney } from "@/lib/finance";
 import { VisitScheduler } from "./VisitScheduler";
@@ -39,7 +40,9 @@ export function AuctionAccessCheckout({
   address?: string;
 }) {
   const { dict } = useI18n();
-  const { ready, authenticated, login } = usePrivy();
+  const { ready, user } = useAuth();
+  const authenticated = user !== null;
+  const [wantsSignIn, setWantsSignIn] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +82,7 @@ export function AuctionAccessCheckout({
   async function buy() {
     setError(null);
     if (!authenticated) {
-      login();
+      setWantsSignIn(true);
       return;
     }
     setBusy(true);
@@ -117,6 +120,11 @@ export function AuctionAccessCheckout({
 
   return (
     <div>
+      {wantsSignIn && !authenticated && (
+        <div className="mb-4">
+          <SignIn />
+        </div>
+      )}
       <button
         type="button"
         onClick={buy}

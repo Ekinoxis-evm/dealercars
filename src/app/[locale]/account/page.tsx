@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ProfileForm } from "@/components/privy-deferred";
+import { ProfileForm } from "@/components/ProfileForm";
 import { getDictionary, isLocale } from "@/i18n";
 
 export async function generateMetadata({

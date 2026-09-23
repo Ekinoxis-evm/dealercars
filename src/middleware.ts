@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { LOCALES, isLocale, localeFromAcceptLanguage } from "@/i18n/config";
 
 /**
@@ -25,6 +26,7 @@ const COOKIE = "locale";
 function isExempt(pathname: string): boolean {
   return (
     pathname.startsWith("/api/") ||
+    pathname.startsWith("/auth/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/brand/") ||
     pathname === "/favicon.ico" ||
@@ -37,7 +39,30 @@ function isExempt(pathname: string): boolean {
   );
 }
 
-export function middleware(request: NextRequest) {
+/**
+ * Keep the Supabase session alive.
+ *
+ * An access token lasts an hour. Route handlers only READ the cookie; this is
+ * the one place that asks Supabase to refresh it and writes the new cookies
+ * back, so a member who leaves a tab open overnight is still signed in when
+ * they come back. Runs on every page request that reaches the app.
+ */
+async function refreshSession(request: NextRequest, response: NextResponse) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return;
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll: (list) => {
+        for (const { name, value, options } of list) response.cookies.set(name, value, options);
+      },
+    },
+  });
+  await supabase.auth.getUser();
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (isExempt(pathname)) return NextResponse.next();
 
@@ -53,6 +78,7 @@ export function middleware(request: NextRequest) {
         sameSite: "lax",
       });
     }
+    await refreshSession(request, response);
     return response;
   }
 

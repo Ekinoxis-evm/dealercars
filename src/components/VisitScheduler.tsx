@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "./AuthProvider";
+import { SignIn } from "./SignIn";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { formatSlotDate, groupSlotsByDay, type VisitSlot } from "@/lib/visits";
 import { useI18n } from "@/i18n/client";
@@ -29,7 +30,9 @@ export function VisitScheduler({
 }) {
   const isAuctionAccess = listingId === undefined;
   const { dict } = useI18n();
-  const { authenticated, login } = usePrivy();
+  const { user } = useAuth();
+  const authenticated = user !== null;
+  const [wantsSignIn, setWantsSignIn] = useState(false);
 
   const [slots, setSlots] = useState<VisitSlot[] | null>(null);
   const [timeZone, setTimeZone] = useState("America/New_York");
@@ -73,7 +76,7 @@ export function VisitScheduler({
   async function book() {
     if (!selected) return;
     if (!authenticated) {
-      login();
+      setWantsSignIn(true);
       return;
     }
     setSaving(true);
@@ -204,6 +207,12 @@ export function VisitScheduler({
               className="mt-1 w-full border border-rule-strong bg-paper px-3 py-2 font-serif text-[0.9375rem] text-ink placeholder:text-ink-faint"
               placeholder="I can only come after 4pm on weekdays."
             />
+
+            {wantsSignIn && !authenticated && (
+              <div className="mt-3">
+                <SignIn />
+              </div>
+            )}
 
             <button
               type="button"

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminCarEditor } from "@/components/privy-deferred";
+import { AdminCarEditor } from "@/components/AdminCarEditor";
 
 export const metadata: Metadata = {
   title: "Add a car — MGM Auto admin",

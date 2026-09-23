@@ -13,9 +13,8 @@
     "lot:seed": "node scripts/seed-mgm-lot.mjs"
   },
   "dependencies": {
-    "@privy-io/react-auth": "^3.38.0",
-    "@privy-io/server-auth": "^1.32.5",
     "@stripe/stripe-js": "^1.54.2",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.112.4",
     "next": "15.5.24",
     "react": "19.1.0",

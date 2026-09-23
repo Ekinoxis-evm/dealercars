@@ -126,37 +126,30 @@ the borrower needs a bank account for ACH, the dealer needs a lien perfected wit
 the contract needs to be enforceable in a county court. Onchain settlement introduces a currency
 risk that does not exist in the underlying transaction.
 
-## Auth: Privy for login, Supabase for data
+## Auth: Supabase Auth, email only
 
-**Decided 2026-08-26, overriding the previous "no Privy" rule.** Privy issues the session; a
-`profiles` row keyed by Privy DID holds everything else. **Login is email and passkey only
-(decided 2026-09-22)** — no SMS, no Google. Email is the identity an admin invitation is matched
-against and where statements go; a passkey is a faster way back into the same account. Two things follow
-and neither is optional:
+**Decided 2026-09-22, replacing Privy.** Supabase Auth issues the session: a member types an
+email and gets a link and a one-time code, either of which signs them in. No password, no social
+login, no passkey, no wallet, no third-party identity SDK. A `profiles` row keyed by the auth
+user id holds everything else. Two things follow and neither is optional:
 
-- **Wallets are off.** `embeddedWallets.{ethereum,solana}.createOnLogin: 'off'` and an empty
-  `walletList`, set explicitly in `src/app/providers.tsx`. This app has nothing a wallet could do,
-  and a wallet the member never asked for is a KYC surface we would then have to defend.
-- **Privy is the only identity claim we trust, and only after verification.** `requireMember()` in
-  `src/lib/auth.ts` is the single chokepoint: verify the access token, resolve the DID, look up the
-  profile. A profile id, deal id, or listing id arriving in a request body is attacker input.
+- **The session cookie is the only identity claim we trust, and only after verification.**
+  `sessionUser()` in `src/lib/session.ts` verifies it with Supabase; `requireMember()` in
+  `src/lib/auth.ts` is the chokepoint that turns it into a profile. A profile id, deal id, or
+  listing id arriving in a request body is attacker input.
+- **The middleware refreshes the session.** Route handlers only read the cookie; `middleware.ts`
+  is what asks Supabase for a fresh token and writes the cookies back. Do not add cookie writes to
+  route handlers.
 
-The known cost, and how it is contained: Privy adds ~726 kB of first-load JS to any page that
-statically imports it, because the SDK pulls the whole wallet stack — `@reown/appkit`, `viem`,
-`keccak`, `x402` — to do email login. On a BHPH buyer's phone on metered data that is a real tax.
+The browser holds only the publishable key (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Under the
+deny-all RLS below it can read nothing; its job is the session and nothing else. `apiFetch` adds
+no header — the cookie travels on its own.
 
-**Every component that imports `@privy-io/react-auth` must be re-exported through
-`src/components/privy-deferred.tsx`, and pages must import it from there.** That module wraps each
-one in `next/dynamic`, which moved `/cars/[id]` and `/account` from 832 kB to 106 kB of first-load
-JS. SSR stays ON inside those boundaries, so the plan figures and their Reg Z disclosure are still
-in the server HTML — `ssr: false` would take the disclosure out of the HTML along with the trigger
-terms it belongs to, so do not add it. A new Privy-dependent component that a page imports directly
-silently puts 726 kB back on the critical path.
-
-Server-side, set `PRIVY_VERIFICATION_KEY` so `verifyAuthToken` verifies the JWT locally. Without it
-the SDK fetches the signing key from Privy on every authenticated request, which puts a third-party
-round-trip on the critical path of every signed-in page load and makes a Privy outage look like
-ours. The code falls back gracefully when the key is unset.
+Supabase sends the sign-in email. Its built-in sender is rate-limited to a few messages an hour
+and is for development; production needs custom SMTP in the Supabase dashboard (Resend is the
+house choice) and the email template must include `{{ .Token }}` for the code to appear beside
+the link. Site URL and redirect URLs in the dashboard must list the production origin, or the link
+in the email lands on localhost.
 
 ### RLS is deny-all, on purpose
 

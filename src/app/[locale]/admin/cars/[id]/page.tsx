@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AdminCarEditor } from "@/components/privy-deferred";
+import { AdminCarEditor } from "@/components/AdminCarEditor";
 
 export const metadata: Metadata = {
   title: "Edit car — MGM Auto admin",
