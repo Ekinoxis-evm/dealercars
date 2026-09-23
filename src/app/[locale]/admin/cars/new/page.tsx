@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AdminCarEditor } from "@/components/privy-deferred";
 
 export const metadata: Metadata = {
-  title: "Add a car — DealerCars",
+  title: "Add a car — MGM Auto admin",
   robots: { index: false, follow: false },
 };
 
