@@ -31,11 +31,6 @@ function Skeleton({ height }: { height: string }) {
   );
 }
 
-const VisitSchedulerImpl = dynamic(
-  () => import("./VisitScheduler").then((m) => m.VisitScheduler),
-  { loading: () => <Skeleton height="h-32" /> }
-);
-
 const ProfileFormImpl = dynamic(
   () => import("./ProfileForm").then((m) => m.ProfileForm),
   { loading: () => <Skeleton height="h-96" /> }
@@ -65,10 +60,6 @@ const AdminCarEditorImpl = dynamic(
   () => import("./AdminCarEditor").then((m) => m.AdminCarEditor),
   { loading: () => <Skeleton height="h-screen" /> }
 );
-
-export function VisitScheduler(props: { listingId: string }) {
-  return <VisitSchedulerImpl {...props} />;
-}
 
 export function ProfileForm() {
   return <ProfileFormImpl />;

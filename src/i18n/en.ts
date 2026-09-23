@@ -198,6 +198,14 @@ export const en = {
   },
 
   visit: {
+    sheetTitle: "When would you like to come and see it?",
+    sheetLede: "Pick a day and an hour. An agent confirms it on WhatsApp.",
+    pickDay: "Pick a day",
+    pickTime: "Pick an hour",
+    chosen: "Your visit:",
+    sendWith: "Send my plan and this visit on WhatsApp",
+    sendWithout: "Send without a visit",
+    none: "No times are open in the next two weeks. Send without a visit and we will find one on WhatsApp.",
     bookTitle: "Book your appointment",
     driveTitle: "Come and drive it",
     timesIn: (zone: string) => `Times are the office's local clock (${zone}).`,
@@ -258,7 +266,7 @@ export const en = {
     /** The one call to action on a built plan. Not "pay" — the conversation comes first. */
     talkToAgent: "Talk to an agent on WhatsApp",
     talkToAgentNote:
-      "Your plan goes into the message as you built it. An agent confirms the car, the figures and your appointment — nothing is charged from this page.",
+      "Pick a day and an hour to come and see it. Your plan and your visit go into the message as you built them; an agent confirms both on WhatsApp — nothing is charged from this page.",
     whatsapp: "WhatsApp",
     greeting: "Hello MGM Auto 👋",
     interestedIn: "I'm interested in this car:",
@@ -273,6 +281,7 @@ export const en = {
     maxMonthly: "Most I can pay monthly",
     reaches: "That reaches",
     general: "I'd like information about a car.",
+    visit: "Preferred visit",
   },
 
   footer: {

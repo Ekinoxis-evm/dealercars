@@ -248,7 +248,10 @@ dealer's connected account as a direct charge.
 builder hands the settled figures — car, down, monthly, term, rate and the page URL — into a
 `wa.me` message labelled "talk to an agent". Nothing on a member surface calls the down-payment
 route today; the route and its gates stay, because the money path is the part that is hard to
-get right and the day it is switched back on it must not be rebuilt. There is no floating
+get right and the day it is switched back on it must not be rebuilt. The same button asks for a
+day and an hour first (`VisitPicker`, fed by `GET /api/visits`) and puts the chosen visit in the
+message; nothing is booked from the page — the agent confirms on WhatsApp. `VisitScheduler`,
+which books through `POST /api/visits` behind a login, survives only on the auction-access page. There is no floating
 contact button: WhatsApp lives beside the quote in `PlanPicker` and in the footer, both through
 `DealerContact.tsx`, which reads the number off the dealer row.
 

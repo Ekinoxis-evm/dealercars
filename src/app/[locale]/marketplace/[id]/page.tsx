@@ -4,7 +4,6 @@ import { loadListing } from "@/lib/listing-store";
 import { dealCostsFor, hasDealCostsFor } from "@/lib/deal-costs";
 import { minDownFor, quoteListing, formatMoney } from "@/lib/finance";
 import { DEFAULT_TERM_MONTHS, clampDown, downBounds } from "@/lib/payment-slider";
-import { VisitScheduler } from "@/components/privy-deferred";
 import { PlanPicker } from "@/components/PlanPicker";
 import { CarGallery } from "@/components/CarGallery";
 import { getDictionary, isLocale } from "@/i18n";
@@ -147,8 +146,6 @@ export default async function CarPage({
               </p>
             </section>
           )}
-
-          <VisitScheduler listingId={listing.id} />
         </div>
 
         {/* ----------------------------------------------------- right */}
