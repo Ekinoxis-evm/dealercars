@@ -32,25 +32,40 @@ declare global {
   }
 }
 
+/**
+ * Load the Places library once, and only when somebody actually uses the field.
+ *
+ * Google is told to call `callback` when the API is READY, which is the only
+ * reliable signal. The script's own `load` event is not: it fires while
+ * `google.maps` is still being assembled, `importLibrary` is not a function
+ * yet, and the loader rejected — which silently disabled this whole field
+ * until it was traced. Do not "simplify" this back to `script.onload`.
+ */
+const CALLBACK = "__mgmPlacesReady";
 let loader: Promise<any> | null = null;
+
 function loadPlaces(): Promise<any> {
   if (!GOOGLE_KEY) return Promise.reject(new Error("no key"));
   if (loader) return loader;
   loader = new Promise((resolve, reject) => {
     if (window.google?.maps?.places) return resolve(window.google.maps.places);
-    const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_KEY)}&libraries=places&v=weekly&loading=async`;
-    s.async = true;
-    s.onload = async () => {
-      try {
-        const places = await window.google.maps.importLibrary("places");
-        resolve(places);
-      } catch (e) {
-        reject(e);
-      }
+    (window as unknown as Record<string, unknown>)[CALLBACK] = () => {
+      const places = window.google?.maps?.places;
+      if (places) resolve(places);
+      else reject(new Error("places missing after load"));
     };
+    const s = document.createElement("script");
+    s.src =
+      `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_KEY)}` +
+      `&libraries=places&v=weekly&loading=async&callback=${CALLBACK}`;
+    s.async = true;
     s.onerror = () => reject(new Error("places failed to load"));
     document.head.appendChild(s);
+  });
+  // A transient failure must not disable the field for the rest of the
+  // session: drop the cached promise so a later keystroke can try again.
+  loader.catch(() => {
+    loader = null;
   });
   return loader;
 }
@@ -123,10 +138,14 @@ export function AddressField({
       if (!places) return;
       try {
         session.current ??= new places.AutocompleteSessionToken();
+        // No `includedPrimaryTypes`: the address types a street field wants
+        // (street_address, premise, subpremise) are result-only types, and
+        // passing them makes the request INVALID_ARGUMENT. Region + the
+        // member's own typing is enough — Google returns street addresses
+        // first for a street-shaped query.
         const { suggestions: found } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: text,
           includedRegionCodes: ["us"],
-          includedPrimaryTypes: ["street_address", "premise", "subpremise"],
           sessionToken: session.current,
         });
         setSuggestions(
@@ -145,7 +164,11 @@ export function AddressField({
           }))
         );
         setOpen(true);
-      } catch {
+      } catch (e) {
+        // The member gets a plain field rather than an error: they can still
+        // type the address. The console line is for whoever has to work out
+        // why suggestions stopped — a silent catch here cost an afternoon.
+        console.warn("[address] suggestions unavailable:", e);
         setSuggestions([]);
       }
     }, 220);
