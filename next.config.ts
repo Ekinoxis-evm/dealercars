@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 
+// On the admin host (see middleware.ts) `/cars/...` is the admin's own inventory
+// editor, not the old public path, so the bare /cars redirects skip that host.
+const notAdminHost = process.env.ADMIN_HOST
+  ? { missing: [{ type: "host" as const, value: process.env.ADMIN_HOST }] }
+  : {};
+
 const nextConfig: NextConfig = {
   async redirects() {
     return [
@@ -9,8 +15,8 @@ const nextConfig: NextConfig = {
       // Both the bare and the localised forms are covered: middleware adds the
       // locale after these run, so a bare /cars would otherwise become /es/cars
       // and only then miss.
-      { source: "/cars", destination: "/marketplace", permanent: true },
-      { source: "/cars/:id", destination: "/marketplace/:id", permanent: true },
+      { source: "/cars", destination: "/marketplace", permanent: true, ...notAdminHost },
+      { source: "/cars/:id", destination: "/marketplace/:id", permanent: true, ...notAdminHost },
       {
         source: "/:locale(es|en)/cars",
         destination: "/:locale/marketplace",

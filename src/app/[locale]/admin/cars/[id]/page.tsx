@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AdminCarEditor } from "@/components/AdminCarEditor";
+import { serverEnv } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Edit car — MGM Auto admin",
@@ -26,9 +26,10 @@ export default async function EditCarPage({
         <p className="tnum mt-1 font-mono text-[0.8125rem] text-ink-muted">
           {id}
           {" · "}
-          <Link href={`/marketplace/${id}`} className="underline">
+          {/* The public site, absolute: on the admin host a bare path stays in the admin. */}
+          <a href={`${serverEnv.siteUrl}/marketplace/${id}`} className="underline">
             view the public page
-          </Link>
+          </a>
         </p>
       </header>
 

@@ -20,7 +20,7 @@ export default function AdminAdminsPage() {
         <p className="mt-1 font-serif text-lg text-ink-muted">
           Who can edit the lot and the dealer. Added by email, active on first sign-in.
         </p>
-        <AdminNav current="/admin/admins" />
+        <AdminNav current="/admins" />
       </header>
       <div className="mt-8">
         <AdminAdmins />

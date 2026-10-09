@@ -22,7 +22,7 @@ export default function AdminPage() {
         <p className="mt-1 font-serif text-lg text-ink-muted">
           Every car we have sourced, bought, or sold.
         </p>
-        <AdminNav current="/admin" />
+        <AdminNav current="/" />
       </header>
 
       <div className="mt-8">

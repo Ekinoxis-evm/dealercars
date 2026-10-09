@@ -20,7 +20,7 @@ export default function AdminDealerPage() {
         <p className="mt-1 font-serif text-lg text-ink-muted">
           Name, address, WhatsApp and social links — what the site says about the business.
         </p>
-        <AdminNav current="/admin/dealer" />
+        <AdminNav current="/dealer" />
       </header>
       <div className="mt-8">
         <AdminDealerEditor />
