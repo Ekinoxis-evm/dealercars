@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { LOCALES, isLocale, localeFromAcceptLanguage } from "@/i18n/config";
+import { DEFAULT_LOCALE, LOCALES, isLocale, localeFromAcceptLanguage } from "@/i18n/config";
 
 /**
  * Send every member-facing URL to a locale.
@@ -62,11 +62,49 @@ async function refreshSession(request: NextRequest, response: NextResponse) {
   await supabase.auth.getUser();
 }
 
+/**
+ * The admin lives on its own host when ADMIN_HOST is set (production only:
+ * `admin.mgmautobroker.com`). On that host everything that is not an admin
+ * page goes to the admin; on every other host an admin page goes to that
+ * host. Unset — previews, localhost — nothing moves and /es/admin works as
+ * before.
+ *
+ * Separation, not security: the session cookie is per host, so an admin signs
+ * in on the admin host, and the API routes behind it still run requireAdmin()
+ * on every call whatever host they are reached from.
+ */
+function isAdminPath(pathname: string): boolean {
+  const [, first, second] = pathname.split("/");
+  return first === "admin" || (isLocale(first) && second === "admin");
+}
+
+function adminHostRedirect(request: NextRequest, locale: string): NextResponse | null {
+  const adminHost = process.env.ADMIN_HOST;
+  if (!adminHost) return null;
+  const { pathname } = request.nextUrl;
+  const onAdminHost = request.headers.get("host") === adminHost;
+  if (onAdminHost === isAdminPath(pathname)) return null;
+
+  const url = request.nextUrl.clone();
+  if (onAdminHost) {
+    url.pathname = `/${locale}/admin`;
+    url.search = "";
+  } else {
+    url.host = adminHost;
+    url.port = "";
+    url.protocol = "https:";
+  }
+  return NextResponse.redirect(url);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (isExempt(pathname)) return NextResponse.next();
 
   const first = pathname.split("/")[1];
+  const moved = adminHostRedirect(request, isLocale(first) ? first : DEFAULT_LOCALE);
+  if (moved) return moved;
+
   if (isLocale(first)) {
     // Already localised. Remember it, so the next bare URL lands in the same
     // language rather than re-running detection.
