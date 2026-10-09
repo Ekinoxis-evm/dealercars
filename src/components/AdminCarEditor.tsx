@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAdminHref } from "./AdminBase";
 import { useAuth } from "./AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { centsToInput, dollarsToCents } from "@/lib/money-input";
@@ -85,6 +86,7 @@ export function AdminCarEditor({ listingId }: { listingId?: string }) {
   const { ready, user } = useAuth();
   const authenticated = user !== null;
   const router = useRouter();
+  const adminHref = useAdminHref();
 
   const [form, setForm] = useState<FormState>(EMPTY);
   const [photos, setPhotos] = useState<ListingPhoto[]>([]);
@@ -257,7 +259,7 @@ export function AdminCarEditor({ listingId }: { listingId?: string }) {
         );
         // Straight to the editor for the new car, which is where the photo
         // manager lives — a car with no pictures is not yet a listing.
-        router.push(`/admin/cars/${res.id}`);
+        router.push(adminHref(`/cars/${res.id}`));
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not save.");
@@ -663,7 +665,7 @@ export function AdminCarEditor({ listingId }: { listingId?: string }) {
             </span>
           )}
           <Link
-            href="/admin"
+            href={adminHref("/")}
             className="font-mono text-[0.75rem] uppercase tracking-[0.08em] text-ink-muted underline"
           >
             Back to inventory

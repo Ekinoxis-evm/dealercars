@@ -64,46 +64,70 @@ async function refreshSession(request: NextRequest, response: NextResponse) {
 
 /**
  * The admin lives on its own host when ADMIN_HOST is set (production only:
- * `admin.mgmautobroker.com`). On that host everything that is not an admin
- * page goes to the admin; on every other host an admin page goes to that
- * host. Unset — previews, localhost — nothing moves and /es/admin works as
- * before.
+ * `admin.mgmautobroker.com`), at clean paths: `/`, `/cars/new`, `/dealer`.
+ * The pages themselves are still `/[locale]/admin/...`; on that host the
+ * middleware rewrites to them, so the address bar never shows a locale or an
+ * `/admin`. Old `/es/admin/...` links on any host redirect to the clean form.
+ * Unset — previews, localhost — nothing moves and /es/admin works as before.
  *
  * Separation, not security: the session cookie is per host, so an admin signs
  * in on the admin host, and the API routes behind it still run requireAdmin()
  * on every call whatever host they are reached from.
  */
-function isAdminPath(pathname: string): boolean {
-  const [, first, second] = pathname.split("/");
-  return first === "admin" || (isLocale(first) && second === "admin");
+/** The top-level folders under src/app/[locale]/admin. A new admin section goes here too. */
+const ADMIN_SECTIONS = ["cars", "dealer", "admins"];
+
+function adminSuffix(pathname: string): string | null {
+  const parts = pathname.split("/");
+  const at = parts[1] === "admin" ? 2 : isLocale(parts[1]) && parts[2] === "admin" ? 3 : 0;
+  if (!at) return null;
+  return `/${parts.slice(at).join("/")}`;
 }
 
-function adminHostRedirect(request: NextRequest, locale: string): NextResponse | null {
+async function adminHostRouting(request: NextRequest): Promise<NextResponse | null> {
   const adminHost = process.env.ADMIN_HOST;
   if (!adminHost) return null;
   const { pathname } = request.nextUrl;
+  const suffix = adminSuffix(pathname);
   const onAdminHost = request.headers.get("host") === adminHost;
-  if (onAdminHost === isAdminPath(pathname)) return null;
+
+  if (suffix !== null) {
+    // An admin URL in the long form, on either host: send it to the clean one.
+    const url = request.nextUrl.clone();
+    url.pathname = suffix;
+    if (!onAdminHost) {
+      url.host = adminHost;
+      url.port = "";
+      url.protocol = "https:";
+    }
+    return NextResponse.redirect(url);
+  }
+  if (!onAdminHost) return null;
+
+  // Anything that is not an admin section — the logo, the site nav, the
+  // language switch, all of which the admin shares with the public layout —
+  // belongs to the public site, not to a 404 inside the admin.
+  const section = pathname.split("/")[1];
+  if (section !== "" && !ADMIN_SECTIONS.includes(section)) {
+    const site = process.env.NEXT_PUBLIC_SITE_URL;
+    if (site) return NextResponse.redirect(new URL(pathname + request.nextUrl.search, site));
+  }
 
   const url = request.nextUrl.clone();
-  if (onAdminHost) {
-    url.pathname = `/${locale}/admin`;
-    url.search = "";
-  } else {
-    url.host = adminHost;
-    url.port = "";
-    url.protocol = "https:";
-  }
-  return NextResponse.redirect(url);
+  url.pathname = `/${DEFAULT_LOCALE}/admin${pathname === "/" ? "" : pathname}`;
+  const response = NextResponse.rewrite(url);
+  await refreshSession(request, response);
+  return response;
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (isExempt(pathname)) return NextResponse.next();
 
+  const admin = await adminHostRouting(request);
+  if (admin) return admin;
+
   const first = pathname.split("/")[1];
-  const moved = adminHostRedirect(request, isLocale(first) ? first : DEFAULT_LOCALE);
-  if (moved) return moved;
 
   if (isLocale(first)) {
     // Already localised. Remember it, so the next bare URL lands in the same

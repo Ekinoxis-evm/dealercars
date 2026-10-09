@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useAdminHref } from "./AdminBase";
 import { useAuth } from "./AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { formatMoney } from "@/lib/finance";
@@ -34,6 +35,7 @@ const STATUS_TONE: Record<ListingStatus, string> = {
 };
 
 export function AdminInventory() {
+  const adminHref = useAdminHref();
   const { ready, user } = useAuth();
   const authenticated = user !== null;
   const [listings, setListings] = useState<RetailListing[] | null>(null);
@@ -87,7 +89,7 @@ export function AdminInventory() {
           {listings ? `${listings.length} vehicles` : "Loading"}
         </p>
         <Link
-          href="/admin/cars/new"
+          href={adminHref("/cars/new")}
           className="bg-accent px-4 py-2 font-display text-sm font-bold tracking-tight text-accent-ink"
         >
           Add a car
@@ -110,7 +112,7 @@ export function AdminInventory() {
         {listings?.map((listing) => (
           <li key={listing.id} className="border-b border-rule">
             <Link
-              href={`/admin/cars/${listing.id}`}
+              href={adminHref(`/cars/${listing.id}`)}
               className="flex items-center gap-4 py-3 hover:bg-paper-raised"
             >
               <Thumb listing={listing} />
