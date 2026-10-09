@@ -48,6 +48,9 @@ export async function GET(request: Request) {
     failed = true;
   }
 
-  const target = new URL(failed ? `/?auth=failed` : next, serverEnv.siteUrl);
+  // Back to the origin the link landed on, not the canonical site URL. The
+  // session cookies above belong to THIS host: an admin who signed in on
+  // admin.<domain> and is sent on to <domain> arrives signed out.
+  const target = new URL(failed ? `/?auth=failed` : next, url.origin);
   return NextResponse.redirect(target);
 }
